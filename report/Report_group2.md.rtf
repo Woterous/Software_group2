@@ -1,0 +1,67 @@
+{\rtf1\ansi\ansicpg936\cocoartf2865
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # Brief Report: TA Recruitment System Requirement Analysis and Iteration Plan\
+\
+## 1. Project Background & Scope\
+The BUPT International School recruits Teaching Assistants (TAs) every semester to support academic modules and various extracurricular activities. Currently, the administration and Module Organisers (MOs) rely heavily on manual procedures involving paper forms, email threads, and decentralized Excel spreadsheets. This legacy workflow is highly inefficient, prone to human error, and lacks transparency. It makes it exceedingly difficult for TAs to track their application statuses, for MOs to filter and select qualified candidates efficiently, and for Administrators to monitor overall workloads effectively.\
+\
+To resolve these operational bottlenecks, our Agile development team is designing and implementing a digitized **TA Recruitment System**. The system is tailored to serve three primary stakeholders:\
+*   **Teaching Assistants (TAs):** To find jobs, manage profiles, upload CVs, and track applications.\
+*   **Module Organisers (MOs):** To post job vacancies, review applications, and select candidates.\
+*   **Administrators (Admin):** To maintain global oversight and ensure fair workload distribution among TAs.\
+\
+**Project Scope:** The project focuses on digitalizing the core recruitment workflow. Following the mandatory module specifications, the system will be developed using Java (Stand-alone or Servlet/JSP) without the use of relational databases. All data persistence (input/output) will be handled via simple text file formats (e.g., CSV, JSON, or XML). The primary objective is to deliver a functional, modular, and extensible prototype that demonstrates the system's core value: streamlining recruitment and balancing workload.\
+\
+## 2. Fact-finding Techniques\
+To ensure our software accurately addresses the customer's needs and to define the system's exact requirements, our team employed a combination of qualitative fact-finding techniques:\
+\
+*   **Document Review:** We systematically analyzed the existing Excel templates, application forms, and CV submission guidelines currently used by the BUPT International School. This allowed us to map the data fields required for the system (e.g., applicant skills, availability, module requirements) and understand the legacy data flow.\
+*   **Interviews and Scenario Analysis:** We conducted structured mock interviews simulating conversations with MOs and Admins. We identified critical pain points: MOs struggle with comparing multiple CVs simultaneously, and Admins lack a unified dashboard to see if a specific TA is overloaded with too many modules. \
+*   **Surveys (Simulated):** We evaluated the typical TA experience through scenario-based surveys. The feedback indicated that TAs desire a centralized platform to view all available positions and receive real-time updates on whether their applications are pending, accepted, or rejected.\
+\
+These fact-finding activities provided the empirical foundation for our requirements engineering, ensuring that the system is designed to solve real-world administrative friction.\
+\
+## 3. User Stories & Backlog Formation\
+Based on the insights gathered from the fact-finding phase, we defined our system's user roles and translated their needs into actionable Agile User Stories. By focusing on the "Who, What, and Why," we constructed a comprehensive Product Backlog.\
+\
+The logic behind the backlog formation is categorized by user roles:\
+*   **TA-centric Stories:** Focus on usability and accessibility. For example, *"As a TA, I want to upload my CV and list my skills, so that MOs can evaluate my qualifications."* and *"As a TA, I want to view a list of open positions, so that I can apply for relevant modules."*\
+*   **MO-centric Stories:** Focus on efficiency and decision-making. For example, *"As an MO, I want to view the number of applicants for my posted jobs, so that I can manage the selection process."*\
+*   **Admin-centric Stories:** Focus on system governance. For example, *"As an Admin, I want to view the overall weekly hours of every TA, so that I can prevent workload imbalances (overloading)."*\
+\
+Each User Story in the backlog is accompanied by explicit Acceptance Criteria to ensure the development team has a clear definition of "Done" for every feature.\
+\
+## 4. Prioritisation & Estimation Methods\
+Given the strict project timeline and the necessity of incremental delivery, effective prioritisation and estimation were critical to our Sprint planning.\
+\
+**Prioritisation Method (MoSCoW):**\
+We utilized the MoSCoW method to categorize the Product Backlog, ensuring the core value chain is established first:\
+*   **Must-Have:** Fundamental infrastructure including file-based data storage, user login/registration, TA applying for jobs, and MO selecting applicants. These form the minimal viable product (MVP).\
+*   **Should-Have:** Admin dashboard for workload tracking, dynamic application status updates, and UI refinements.\
+*   **Could-Have:** AI-assisted features (e.g., skill matching or missing skill identification) and advanced filtering options.\
+*   **Won't-Have (for now):** Complex database integrations (strictly prohibited by project specifications) and external email notifications.\
+\
+**Estimation Method (Planning Poker):**\
+To estimate the effort and complexity of each User Story, the team employed **Planning Poker** using the **Fibonacci sequence** (1, 2, 3, 5, 8, 13, 21). \
+During our Agile planning meetings, team members anonymously voted on the Story Points for each task. If discrepancies occurred (e.g., one member voted 3, another voted 13), the team discussed the technical risks\'97such as the complexity of file I/O operations versus simple UI rendering\'97until a consensus was reached. This method prevented anchoring bias and ensured realistic workload distribution among the 6 group members.\
+\
+## 5. Iteration Planning\
+We have adopted the Scrum framework to manage our software development lifecycle, utilizing GitHub for version control and task tracking. The project is divided into four main iterative Sprints to ensure continuous feedback and incremental delivery:\
+\
+*   **Sprint 1 (Current - BUPT Week 3): Requirements & Design**\
+    *   Focus on Agile project setup, requirement gathering, and repository initialization.\
+    *   Deliverables: Product Backlog formulation, UI/UX design (low/medium-fidelity prototypes for TA, MO, and Admin dashboards), and the initial brief report.\
+*   **Sprint 2 (BUPT Weeks 4-5): Core Architecture & TA Features**\
+    *   Focus on establishing the underlying Java architecture and the text-file based Data Access Object (DAO) layer.\
+    *   Deliverables: Working software version 1, featuring user authentication, TA profile creation, and basic job listing functionality.\
+*   **Sprint 3 (BUPT Weeks 6-8): MO & Admin Functionality**\
+    *   Focus on management features and closing the application loop.\
+    *   Deliverables: Working software version 2 & 3, featuring MO job posting, applicant selection logic, and the Admin workload calculation dashboard. Preparation for the intermediate demonstration.\
+*   **Sprint 4 (BUPT Weeks 9-11): Integration, AI Features & Refinement**\
+    *   Focus on system integration, rigorous acceptance testing, and error handling.\
+    *   Deliverables: Working software version 4, inclusion of experimental AI-assisted skill matching (if feasible within the timeframe), finalizing JavaDocs, User Manual, and final video presentation preparation.}
