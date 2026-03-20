@@ -43,18 +43,70 @@ We utilized the MoSCoW method to categorize the Product Backlog, ensuring the co
 To estimate the effort and complexity of each User Story, the team employed **Planning Poker** using the **Fibonacci sequence** (1, 2, 3, 5, 8, 13, 21). 
 During our Agile planning meetings, team members anonymously voted on the Story Points for each task. If discrepancies occurred (e.g., one member voted 3, another voted 13), the team discussed the technical risks—such as the complexity of file I/O operations versus simple UI rendering—until a consensus was reached. This method prevented anchoring bias and ensured realistic workload distribution among the 6 group members.
 
-## 5. Iteration Planning
-We have adopted the Scrum framework to manage our software development lifecycle, utilizing GitHub for version control and task tracking. The project is divided into four main iterative Sprints to ensure continuous feedback and incremental delivery:
+## 5. Iteration Planning (Revised)
 
-*   **Sprint 1 (Current - BUPT Week 3): Requirements & Design**
-    *   Focus on Agile project setup, requirement gathering, and repository initialization.
-    *   Deliverables: Product Backlog formulation, UI/UX design (low/medium-fidelity prototypes for TA, MO, and Admin dashboards), and the initial brief report.
-*   **Sprint 2 (BUPT Weeks 4-5): Core Architecture & TA Features**
-    *   Focus on establishing the underlying Java architecture and the text-file based Data Access Object (DAO) layer.
-    *   Deliverables: Working software version 1, featuring user authentication, TA profile creation, and basic job listing functionality.
-*   **Sprint 3 (BUPT Weeks 6-8): MO & Admin Functionality**
-    *   Focus on management features and closing the application loop.
-    *   Deliverables: Working software version 2 & 3, featuring MO job posting, applicant selection logic, and the Admin workload calculation dashboard. Preparation for the intermediate demonstration.
-*   **Sprint 4 (BUPT Weeks 9-11): Integration, AI Features & Refinement**
-    *   Focus on system integration, rigorous acceptance testing, and error handling.
-    *   Deliverables: Working software version 4, inclusion of experimental AI-assisted skill matching (if feasible within the timeframe), finalizing JavaDocs, User Manual, and final video presentation preparation.
+To ensure structured and incremental development, the project adopts an Agile Scrum framework divided into four well-defined iterations. Each iteration is designed with a clear objective, aligned deliverables, and measurable outcomes, enabling continuous feedback and progressive refinement.
+
+---
+
+### Sprint 1 – Requirements & Design (Week 3)
+
+This initial sprint focuses on establishing a solid foundation for the system. The team conducts requirement analysis through fact-finding techniques, defines user roles, and translates requirements into structured user stories. A complete Product Backlog is constructed, including prioritisation (MoSCoW) and estimation (Planning Poker).
+
+In parallel, the system architecture is outlined and UI/UX prototypes are developed to visualise the system workflow and gather early feedback.
+
+**Deliverables:**
+
+* Product Backlog
+* Prototype (low/medium fidelity)
+* Brief Report
+
+This sprint ensures a clear project scope and provides a roadmap for subsequent development.
+
+---
+
+### Sprint 2 – Core Implementation (Weeks 4–5)
+
+This sprint focuses on building the Minimum Viable Product (MVP). The team implements the core system architecture using Java and establishes file-based data storage. Essential TA functionalities are developed, including user authentication, profile management, job browsing, and basic job application.
+
+**Deliverables:**
+
+* Working Software Version 1
+* Core functional modules (TA workflow)
+
+This stage produces the first functional version of the system, demonstrating the primary user journey.
+
+---
+
+### Sprint 3 – System Expansion (Weeks 6–8)
+
+In this iteration, the system is extended to support Module Organiser (MO) and Administrator functionalities. Features such as job posting, applicant selection, application status tracking, and workload monitoring are implemented.
+
+The team also improves usability, enhances UI consistency, and introduces validation and error handling mechanisms.
+
+**Deliverables:**
+
+* Working Software Version 2 & 3
+* Complete multi-role functionality
+
+This sprint ensures that all user roles are fully supported and that the system becomes functionally comprehensive.
+
+---
+
+### Sprint 4 – Testing & Finalisation (Weeks 9–11)
+
+The final sprint focuses on system integration, testing, and delivery preparation. The team conducts acceptance testing, fixes identified issues, and refines performance and usability. Optional AI-assisted features may be explored if feasible.
+
+Documentation, including JavaDocs, user manuals, and demonstration materials, is completed.
+
+**Deliverables:**
+
+* Final Software System
+* Test programs and documentation
+* Demonstration video
+
+This iteration ensures the system is stable, complete, and ready for final evaluation.
+
+---
+
+Overall, this iterative approach ensures continuous progress, risk reduction, and alignment with Agile principles, while enabling the team to deliver a functional and well-structured software system.
