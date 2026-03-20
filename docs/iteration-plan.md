@@ -1,162 +1,109 @@
-# Iteration Plan (Optimized Version)
+# Sprint Plan (Iteration Plan)
 
-## 1. Overview
+## 1. Planning Principles
+This plan follows the course handout and enforces:
+- incremental delivery by sprint
+- clear sprint objectives and exit criteria
+- measurable artefacts at each assessment checkpoint
 
-This project follows an Agile Scrum-based development approach.
-The system will be developed incrementally across **four iterations (Sprints)**, with each sprint delivering a clear set of objectives, outputs, and measurable progress.
+Terminology rule:
+- `Sprint` and `Iteration` refer to the same unit in this project
+- this document uses `Sprint` as the primary term
 
-Each iteration includes:
+## 2. Timeline and Milestones
+| Sprint | Date Window | Checkpoint |
+|---|---|---|
+| Sprint 1 | March 16, 2026 - March 22, 2026 | Assessment 1 (30%) |
+| Sprint 2 | March 23, 2026 - April 12, 2026 | Intermediate checkpoint (20%) |
+| Sprint 3 | April 13, 2026 - May 3, 2026 | Internal integration gate |
+| Sprint 4 | May 4, 2026 - May 17, 2026 | Final readiness gate |
+| Final Submission | By May 24, 2026 | Final Assessment (50%) |
 
-* Defined goals
-* Core tasks
-* Deliverables
-* Contribution alignment across team members
+## 3. Sprint Objectives and Outputs
+### Sprint 1: Requirements and Design
+Objective:
+- establish requirement baseline, backlog structure, and architecture direction
 
-This ensures continuous feedback, incremental improvement, and clear traceability of development progress.
+Primary outputs:
+- product backlog (`ProductBacklog_group2.xlsx`)
+- prototype package (source images, export-ready for PDF submission)
+- sprint brief report
+- requirement, user story, architecture, and data-model documents
 
----
+Exit criteria:
+- requirements are complete and testable
+- stories include acceptance criteria
+- backlog priorities and estimates are coherent
+- architecture and data model are aligned
 
-## 2. Sprint Structure
+### Sprint 2: Core MVP Implementation
+Objective:
+- implement minimum end-to-end TA workflow
 
-Each sprint follows a consistent workflow:
+Primary outputs:
+- registration/login/profile/CV flow
+- job browse/detail/apply flow
+- baseline file persistence and validation
 
-1. Sprint Planning (task allocation & backlog selection)
-2. Development / Design Activities
-3. Internal Review & Feedback
-4. Integration & GitHub Merge
-5. Reflection & Improvement
+Exit criteria:
+- TA core flow runs end-to-end
+- no blocking defects on must-have stories
+- checkpoint demo is executable
 
----
+### Sprint 3: Role Expansion
+Objective:
+- add MO and Admin operational features
 
-## 3. Iteration 1 – Requirements & System Design
+Primary outputs:
+- MO posting and applicant decision flow
+- TA status visibility
+- Admin global view and workload monitoring
 
-**(Week 3 – First Assessment)**
+Exit criteria:
+- all role workflows are functionally connected
+- cross-role data consistency is verified
 
-### Objective
+### Sprint 4: Quality and Delivery
+Objective:
+- stabilize system and complete final packaging
 
-Establish a clear understanding of system requirements and define the foundation for development.
+Primary outputs:
+- test evidence and bug-fix log
+- user-facing documentation and JavaDoc
+- final demo script and rehearsal package
 
-### Key Tasks
+Exit criteria:
+- critical defects are closed
+- final deliverables meet handout submission checklist
 
-* Requirement analysis using fact-finding techniques
-* User role definition (TA / MO / Admin)
-* User story creation with acceptance criteria
-* Product backlog construction
-* Prioritisation (MoSCoW) and estimation (Planning Poker)
-* System architecture design (high-level)
-* UI/UX prototype design (low/medium fidelity)
+## 4. Delivery Risk Controls
+### Risk 1: Requirement drift
+- Control: requirement-story-backlog traceability matrix maintained each sprint
 
-### Deliverables
+### Risk 2: Overcommitment in Sprint 2
+- Control: lock Sprint 2 scope to Must stories only
 
-* Product Backlog (Excel)
-* Prototype (PDF)
-* Brief Report (PDF)
-* Initial GitHub repository setup with visible contributions
+### Risk 3: Integration late in project
+- Control: enforce cross-role integration checks at Sprint 3 gate
 
-### Outcome
+### Risk 4: Assessment evidence gaps
+- Control: maintain artefact checklist with owner and due date
 
-A well-defined system scope and structured development plan for subsequent iterations.
+## 5. Collaboration and Git Evidence Rules
+To satisfy assessment evidence requirements:
+- each member works on a personal branch
+- changes are merged through pull requests
+- issues are used to track work items and decisions
+- commits must map to backlog/story IDs where possible
 
----
+Minimum sprint evidence expected:
+- branch activity from all members
+- merged PR history for sprint scope
+- updated README/report when scope or decisions change
 
-## 4. Iteration 2 – Core System Implementation
-
-**(Weeks 4–5 – Working Version 1)**
-
-### Objective
-
-Implement the Minimum Viable Product (MVP) focusing on TA-side functionality.
-
-### Key Tasks
-
-* System architecture implementation (MVC structure)
-* File-based data storage (JSON/CSV handling)
-* User authentication (login/register)
-* TA profile management
-* Job browsing functionality
-* Basic job application process
-
-### Deliverables
-
-* Working Software Version 1
-* Core backend structure (Servlet + Service + Model)
-* Initial UI pages connected to backend
-* Updated GitHub commits and merged sprint branch
-
-### Outcome
-
-A functional prototype demonstrating the core user flow:
-**Login → View Jobs → Apply**
-
----
-
-## 5. Iteration 3 – Management Features & System Expansion
-
-**(Weeks 6–8 – Working Version 2 & 3)**
-
-### Objective
-
-Extend system functionality to support MO and Admin operations.
-
-### Key Tasks
-
-* MO job posting functionality
-* Applicant management (view/select candidates)
-* Application status tracking
-* Admin workload monitoring
-* UI improvements and usability refinement
-* Error handling and validation
-
-### Deliverables
-
-* Working Software Version 2 & 3
-* Expanded system functionality
-* Improved UI/UX consistency
-* Preparation for intermediate demo & viva
-
-### Outcome
-
-A complete functional system covering all major user roles:
-TA + MO + Admin
-
----
-
-## 6. Iteration 4 – Testing, Integration & Final Delivery
-
-**(Weeks 9–11 – Final Version)**
-
-### Objective
-
-Ensure system reliability, completeness, and readiness for final delivery.
-
-### Key Tasks
-
-* System integration and bug fixing
-* Acceptance testing and test case validation
-* Performance and usability improvements
-* Optional AI-assisted feature implementation (if feasible)
-* Documentation (JavaDoc, User Manual, README)
-* Demonstration video preparation
-
-### Deliverables
-
-* Final Software Package (ZIP)
-* Test programs and documentation
-* User manual with screenshots
-* Demonstration video
-* Final report
-
-### Outcome
-
-A stable, complete, and demonstrable software system ready for evaluation.
-
----
-
-## 7. Summary
-
-This iteration plan ensures:
-
-* Clear separation of design, implementation, and refinement phases
-* Incremental delivery of working software
-* Balanced workload distribution across team members
-* Strong alignment with Agile principles and coursework requirements
+## 6. Definition of Done (Project Level)
+A sprint item is done only when:
+- functionality and acceptance criteria are both satisfied
+- related documentation is updated
+- storage impact is reflected in data model
+- evidence is present for review/demo

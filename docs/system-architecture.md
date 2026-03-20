@@ -1,80 +1,79 @@
 # System Architecture
 
-## Overview
+## 1. Architecture Goal
+The architecture is designed to satisfy three constraints from the coursework:
+- simple enough for iterative delivery
+- modular enough for team parallel work
+- extensible enough for Sprint 3/4 feature growth
 
-The system follows a layered architecture to separate different responsibilities in the application.
+## 2. Layered Design
+The system uses a 3-layer architecture.
 
-The architecture includes three main layers:
+### Layer 1: User Interface Layer
+Responsibilities:
+- render role-based screens
+- collect and validate input format
+- invoke service operations
 
-1. User Interface Layer
-2. Application Logic Layer
-3. Data Storage Layer
+Representative screens:
+- Login / Register
+- TA Dashboard / Job List / Job Detail
+- MO Dashboard / Applicant Review
+- Admin Dashboard / Workload View
 
----
+### Layer 2: Application Service Layer
+Responsibilities:
+- enforce business rules
+- orchestrate cross-entity operations
+- expose use-case-level methods to UI layer
 
-## User Interface Layer
+Core services:
+- `UserService`: register, authenticate, profile operations
+- `JobService`: publish, list, and detail retrieval
+- `ApplicationService`: apply, status transition, history retrieval
+- `AdminService` (or equivalent module): global views and workload statistics
 
-The User Interface layer is responsible for displaying information and receiving user input.
+### Layer 3: File Storage Layer
+Responsibilities:
+- read and write structured files
+- maintain entity-level persistence consistency
+- provide storage abstraction to service layer
 
-Example interfaces include:
+Default storage baseline:
+- `users.json`
+- `jobs.json`
+- `applications.json`
 
-- Login page
-- Registration page
-- TA dashboard
-- Job list page
-- Job application page
-- MO dashboard
-- Admin dashboard
+## 3. Technology Decision
+Implementation option selected for current baseline:
+- Java stand-alone implementation path (course-compliant)
 
----
+Alternative acceptable path:
+- Java Web (Servlet/JSP) with the same service and storage boundary
 
-## Application Logic Layer
+Non-negotiable constraint:
+- no relational database
 
-The Application Logic layer processes user requests and handles system logic.
+## 4. Key Design Trade-Offs
+### Trade-Off A: Simplicity vs Query Efficiency
+- Choice: file-based persistence
+- Benefit: low setup cost, high compliance with coursework constraints
+- Cost: weaker query performance than database-backed systems
 
-This layer includes several services:
+### Trade-Off B: Fast UI Iteration vs Full Service Completion
+- Choice: role-first UI decomposition for Sprint progression
+- Benefit: visible sprint outputs and stakeholder feedback earlier
+- Cost: requires strict service contract discipline to avoid UI-business coupling
 
-### User Service
+### Trade-Off C: Flexibility vs Strict Schema
+- Choice: text-based files with controlled field definitions
+- Benefit: easy portability and inspection
+- Cost: additional validation logic is needed in services
 
-Responsible for:
+## 5. Extension Direction
+The architecture reserves extension points for optional features:
+- skill matching module
+- skill gap analysis
+- workload balancing recommendation
 
-- user registration
-- user login
-- profile management
-
-### Job Service
-
-Responsible for:
-
-- posting jobs
-- browsing jobs
-- viewing job details
-
-### Application Service
-
-Responsible for:
-
-- submitting job applications
-- tracking application status
-
-### Admin Service
-
-Responsible for:
-
-- viewing users
-- monitoring workload
-- managing applications
-
----
-
-## Data Storage Layer
-
-The system stores data using simple file formats instead of databases.
-
-Example storage files:
-
-- users.json
-- jobs.json
-- applications.json
-
-This approach keeps the system simple and focuses on software engineering principles.
+These are add-on modules and must not break the core 3-layer separation.

@@ -1,89 +1,61 @@
-# Teaching Assistant Recruitment System
+# TA Recruitment System
 
-## Project Overview
+Repository for EBU6304 Software Engineering Group Project (Group 02).
 
-This project is developed for the EBU6304 Software Engineering Group Project.
+## 1. Project Positioning
+This project delivers a role-based TA recruitment system for BUPT International School to replace the current form + spreadsheet workflow.
 
-The goal of this system is to support the recruitment process of Teaching Assistants (TAs) for BUPT International School.  
-Currently, the recruitment process relies on forms and Excel files, which is inefficient and difficult to manage.
+Core roles:
+- Teaching Assistant (TA): profile, CV, job browsing, application, status tracking
+- Module Organiser (MO): job posting, applicant review, candidate selection
+- Administrator (Admin): workload monitoring and recruitment oversight
 
-This system aims to provide a simple software solution that allows Teaching Assistants to apply for jobs, Module Organisers to recruit TAs, and administrators to monitor TA workload.
+## 2. Assessment Context
+This repository follows the coursework handout constraints:
+- Agile development with 4 sprints (iterations)
+- Java-based implementation
+- File-based persistence only (`.txt` / `.csv` / `.json` / `.xml`)
+- No relational database
 
-The system will be developed following Agile software development principles.
+Key milestones:
+- Sprint 1 assessment deadline: **March 22, 2026**
+- Sprint 2 checkpoint: **April 12, 2026**
+- Final assessment: **May 24, 2026**
 
----
+## 3. Repository Structure
+| Path | Purpose |
+|---|---|
+| `docs/` | Requirement, architecture, model, plan, and traceability docs |
+| `prototype/` | UI prototype source images |
+| `report/` | Formal report documents and Sprint backlog artefact |
+| `src/` | Source code implementation |
 
-## System Roles
+## 4. Documentation Index
+- Requirements analysis: [docs/requirement-analysis.md](docs/requirement-analysis.md)
+- User stories and acceptance criteria: [docs/user-stories.md](docs/user-stories.md)
+- System architecture: [docs/system-architecture.md](docs/system-architecture.md)
+- Data model: [docs/data-model.md](docs/data-model.md)
+- Sprint plan: [docs/iteration-plan.md](docs/iteration-plan.md)
+- Traceability matrix: [docs/traceability-matrix.md](docs/traceability-matrix.md)
+- Sprint 1 report: [report/Report_group2.md](report/Report_group2.md)
+- Product backlog: [report/ProductBacklog_group2.xlsx](report/ProductBacklog_group2.xlsx)
 
-The system includes three types of users.
+## 5. Document Governance
+To avoid duplicated content and conflicting statements:
+- `README.md` is the navigation and project-orientation document
+- `docs/` stores source-of-truth engineering documents
+- `report/` stores formal assessment-facing narrative
 
-### Teaching Assistant (TA)
+## 6. Current Status
+Current focus is Sprint 1 completion quality:
+- clear and testable requirements
+- full user story coverage with acceptance criteria
+- prioritised and estimated backlog
+- architecture and data model consistency
+- requirement-to-deliverable traceability
 
-A Teaching Assistant can:
-
-- register an account
-- log into the system
-- create a profile
-- upload a CV
-- browse available jobs
-- apply for jobs
-- check application status
-
-### Module Organiser (MO)
-
-A Module Organiser can:
-
-- post new TA jobs
-- view applicants
-- select suitable candidates
-
-### Admin
-
-An Admin can:
-
-- view all users
-- check TA workload
-- monitor recruitment progress
-
----
-
-## Core Features
-
-The core features of the system include:
-
-- user registration and login
-- user profile management
-- CV upload
-- job posting
-- job browsing
-- job application
-- application status tracking
-- workload monitoring
-
----
-
-## Project Structure
-TA-Recruitment-System
-│
-├── README.md
-├── docs
-├── backlog
-├── prototype
-├── report
-└── src
-
----
-
-## Development Method
-
-The project follows Agile development with multiple iterations.
-
-Iteration 1 focuses on:
-
-- requirement analysis
-- user stories
-- product backlog
-- system architecture
-- prototype design
-
-Later iterations will focus on implementing and improving the system.
+## 7. Delivery Principle
+The project is managed as a software engineering process, not only a coding task:
+- decision rationale must be explicit
+- trade-offs must be documented
+- sprint outputs must be auditable
