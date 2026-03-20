@@ -37,7 +37,8 @@ Key milestones:
 - Data model: [docs/data-model.md](docs/data-model.md)
 - Sprint plan: [docs/iteration-plan.md](docs/iteration-plan.md)
 - Traceability matrix: [docs/traceability-matrix.md](docs/traceability-matrix.md)
-- Sprint 1 report: [report/Report_group2.md](report/Report_group2.md)
+- API integration docs: [docs/api/INDEX.md](docs/api/INDEX.md)
+- Sprint 1 report: [report/Report.md](report/Report.md)
 - Product backlog: [report/ProductBacklog_group2.xlsx](report/ProductBacklog_group2.xlsx)
 
 ## 5. Document Governance

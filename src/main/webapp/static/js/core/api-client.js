@@ -60,6 +60,10 @@
             if (this.mode === "mock") return fromMock(window.MockEngine.ta.updateCv(userId, payload.cvPath));
             return fetchJson("/ta/profile/cv", { method: "POST", body: JSON.stringify(payload) });
         },
+        async taDeleteCv(userId) {
+            if (this.mode === "mock") return fromMock(window.MockEngine.ta.updateCv(userId, ""));
+            return fetchJson("/ta/profile/cv", { method: "DELETE" });
+        },
         async taListJobs(params) {
             if (this.mode === "mock") {
                 const result = window.MockEngine.ta.listJobs(params);
@@ -93,7 +97,8 @@
         },
         async moSaveJob(payload, moUserId) {
             if (this.mode === "mock") return fromMock(window.MockEngine.mo.saveJob(payload, moUserId));
-            return fetchJson("/mo/jobs", { method: payload.jobId ? "PUT" : "POST", body: JSON.stringify(payload) });
+            const path = payload.jobId ? `/mo/jobs/${payload.jobId}` : "/mo/jobs";
+            return fetchJson(path, { method: payload.jobId ? "PUT" : "POST", body: JSON.stringify(payload) });
         },
         async moListApplicants(params) {
             if (this.mode === "mock") return fromMock(window.MockEngine.mo.listApplicants(params));

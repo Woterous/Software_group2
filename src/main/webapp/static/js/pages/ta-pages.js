@@ -97,7 +97,7 @@ window.PageModules.ta = window.PageModules.ta || {};
         });
 
         document.getElementById("ta-cv-remove").addEventListener("click", async () => {
-            const result = await window.ApiClient.taUpdateCv(session.userId, { cvPath: "" });
+            const result = await window.ApiClient.taDeleteCv(session.userId);
             if (result.success) {
                 window.UIKit.toast("CV removed.", "warn");
                 await load();

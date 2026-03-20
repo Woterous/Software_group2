@@ -10,7 +10,7 @@ This report records Sprint 1 engineering decisions and provides assessment evide
 
 This file is intentionally different from `README.md`:
 - `README.md`: repository orientation
-- `Report_group2.md`: assessment-facing rationale and evidence
+- `Report.md`: assessment-facing rationale and evidence
 
 ## 2. Context and Problem Definition
 BUPT International School currently relies on forms, emails, and spreadsheets for TA recruitment. The process lacks consistency, transparency, and workload visibility.

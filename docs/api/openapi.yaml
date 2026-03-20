@@ -1,0 +1,774 @@
+openapi: 3.0.3
+info:
+  title: TA Recruitment System API
+  version: 1.0.0
+  description: Sprint 2 frontend-backend integration contract.
+servers:
+  - url: /api/v1
+    description: Relative server path
+
+tags:
+  - name: Auth
+  - name: TA
+  - name: MO
+  - name: Admin
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '201':
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeUser'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeUser'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    delete:
+      tags: [Auth]
+      summary: Logout and clear session
+      responses:
+        '204':
+          description: Logged out
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current session user
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeUser'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /ta/dashboard:
+    get:
+      tags: [TA]
+      summary: TA dashboard metrics
+      responses:
+        '200':
+          description: Dashboard payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeTaDashboard'
+
+  /ta/profile:
+    get:
+      tags: [TA]
+      summary: Get TA profile
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeUser'
+    put:
+      tags: [TA]
+      summary: Update TA profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaProfileUpdateRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeUser'
+
+  /ta/profile/cv:
+    post:
+      tags: [TA]
+      summary: Upsert CV path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CvUpdateRequest'
+      responses:
+        '200':
+          description: CV updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeCv'
+    delete:
+      tags: [TA]
+      summary: Remove CV path
+      responses:
+        '204':
+          description: CV removed
+
+  /ta/jobs:
+    get:
+      tags: [TA]
+      summary: List TA jobs
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - $ref: '#/components/parameters/keyword'
+        - $ref: '#/components/parameters/module'
+        - $ref: '#/components/parameters/status'
+      responses:
+        '200':
+          description: Job list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeJobs'
+
+  /ta/jobs/{jobId}:
+    get:
+      tags: [TA]
+      summary: Get job detail
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeJob'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /ta/applications:
+    get:
+      tags: [TA]
+      summary: List my applications
+      parameters:
+        - $ref: '#/components/parameters/status'
+        - $ref: '#/components/parameters/keyword'
+      responses:
+        '200':
+          description: Application list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeApplications'
+    post:
+      tags: [TA]
+      summary: Apply for job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaApplicationCreateRequest'
+      responses:
+        '201':
+          description: Application created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeApplication'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /mo/dashboard:
+    get:
+      tags: [MO]
+      summary: MO dashboard metrics
+      responses:
+        '200':
+          description: Dashboard payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeMoDashboard'
+
+  /mo/jobs:
+    get:
+      tags: [MO]
+      summary: List MO jobs
+      parameters:
+        - $ref: '#/components/parameters/keyword'
+        - $ref: '#/components/parameters/status'
+      responses:
+        '200':
+          description: MO jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeJobs'
+    post:
+      tags: [MO]
+      summary: Create job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoJobSaveRequest'
+      responses:
+        '201':
+          description: Job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeJob'
+
+  /mo/jobs/{jobId}:
+    put:
+      tags: [MO]
+      summary: Update job
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoJobSaveRequest'
+      responses:
+        '200':
+          description: Job updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeJob'
+
+  /mo/applicants:
+    get:
+      tags: [MO]
+      summary: List applicants
+      parameters:
+        - in: query
+          name: jobId
+          schema:
+            type: string
+        - $ref: '#/components/parameters/status'
+        - $ref: '#/components/parameters/keyword'
+      responses:
+        '200':
+          description: Applicants
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeApplications'
+
+  /mo/review/{applicationId}:
+    get:
+      tags: [MO]
+      summary: Get review context
+      parameters:
+        - in: path
+          name: applicationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeApplication'
+
+  /mo/applications/{applicationId}/status:
+    put:
+      tags: [MO]
+      summary: Update applicant status
+      parameters:
+        - in: path
+          name: applicationId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoApplicationStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeApplication'
+
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Admin dashboard metrics
+      responses:
+        '200':
+          description: Dashboard payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeAdminDashboard'
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [ta, mo, admin]
+        - $ref: '#/components/parameters/keyword'
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeUsers'
+
+  /admin/applications:
+    get:
+      tags: [Admin]
+      summary: List all applications
+      parameters:
+        - $ref: '#/components/parameters/status'
+        - $ref: '#/components/parameters/module'
+        - $ref: '#/components/parameters/keyword'
+      responses:
+        '200':
+          description: Application list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeApplications'
+
+  /admin/workload:
+    get:
+      tags: [Admin]
+      summary: Get workload summary
+      parameters:
+        - in: query
+          name: riskLevel
+          schema:
+            type: string
+            enum: [normal, warning, overload]
+      responses:
+        '200':
+          description: Workload rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeWorkload'
+
+components:
+  parameters:
+    page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+    size:
+      in: query
+      name: size
+      schema:
+        type: integer
+        minimum: 1
+    keyword:
+      in: query
+      name: keyword
+      schema:
+        type: string
+    status:
+      in: query
+      name: status
+      schema:
+        type: string
+    module:
+      in: query
+      name: module
+      schema:
+        type: string
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+    NotFoundError:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+
+  schemas:
+    Meta:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items: {}
+
+    User:
+      type: object
+      required: [userId, name, email, role]
+      properties:
+        userId: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [ta, mo, admin] }
+        skills:
+          type: array
+          items: { type: string }
+        major: { type: string }
+        contact: { type: string }
+        cvPath: { type: string }
+
+    Job:
+      type: object
+      required: [jobId, title, moduleName, requiredSkills, deadline, status]
+      properties:
+        jobId: { type: string }
+        title: { type: string }
+        moduleName: { type: string }
+        requiredSkills: { type: string }
+        deadline: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [open, closing, closed] }
+        postedBy: { type: string }
+
+    Application:
+      type: object
+      required: [applicationId, userId, jobId, status]
+      properties:
+        applicationId: { type: string }
+        userId: { type: string }
+        jobId: { type: string }
+        status: { type: string, enum: [pending, selected, rejected] }
+        reviewNote: { type: string }
+        updatedAt: { type: string }
+
+    WorkloadRow:
+      type: object
+      properties:
+        userId: { type: string }
+        name: { type: string }
+        selectedModules: { type: integer }
+        totalHours: { type: integer }
+        riskLevel: { type: string, enum: [normal, warning, overload] }
+
+    AuthRegisterRequest:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name: { type: string }
+        email: { type: string }
+        password: { type: string }
+        role: { type: string, enum: [ta, mo, admin] }
+        skills: { type: string }
+        cvPath: { type: string }
+
+    AuthLoginRequest:
+      type: object
+      required: [email, password, role]
+      properties:
+        email: { type: string }
+        password: { type: string }
+        role: { type: string, enum: [ta, mo, admin] }
+
+    TaProfileUpdateRequest:
+      type: object
+      properties:
+        name: { type: string }
+        email: { type: string }
+        skills: { type: string }
+        major: { type: string }
+        contact: { type: string }
+
+    CvUpdateRequest:
+      type: object
+      required: [cvPath]
+      properties:
+        cvPath: { type: string }
+
+    TaApplicationCreateRequest:
+      type: object
+      required: [jobId]
+      properties:
+        jobId: { type: string }
+
+    MoJobSaveRequest:
+      type: object
+      required: [title, moduleName, requiredSkills, deadline, description, status]
+      properties:
+        title: { type: string }
+        moduleName: { type: string }
+        requiredSkills: { type: string }
+        deadline: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [open, closing, closed] }
+
+    MoApplicationStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [selected, rejected] }
+        reviewNote: { type: string }
+
+    EnvelopeError:
+      type: object
+      properties:
+        success: { type: boolean, enum: [false] }
+        data: { nullable: true }
+        meta: { type: object }
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+
+    EnvelopeUser:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeJob:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            job:
+              $ref: '#/components/schemas/Job'
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeJobs:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            jobs:
+              type: array
+              items:
+                $ref: '#/components/schemas/Job'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        error: { nullable: true }
+
+    EnvelopeApplication:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            application:
+              $ref: '#/components/schemas/Application'
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeApplications:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            applications:
+              type: array
+              items:
+                $ref: '#/components/schemas/Application'
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeUsers:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        error: { nullable: true }
+
+    EnvelopeCv:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            cvPath:
+              type: string
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    TaDashboard:
+      type: object
+      properties:
+        openJobs: { type: integer }
+        submitted: { type: integer }
+        pending: { type: integer }
+        selected: { type: integer }
+
+    EnvelopeTaDashboard:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            openJobs: { type: integer }
+            submitted: { type: integer }
+            pending: { type: integer }
+            selected: { type: integer }
+            latestApplications:
+              type: array
+              items: { $ref: '#/components/schemas/Application' }
+            recommendedJobs:
+              type: array
+              items: { $ref: '#/components/schemas/Job' }
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeMoDashboard:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            activeJobs: { type: integer }
+            totalApplicants: { type: integer }
+            pendingReview: { type: integer }
+            selectedCount: { type: integer }
+            nearDeadline:
+              type: array
+              items: { $ref: '#/components/schemas/Job' }
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeAdminDashboard:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            totalUsers: { type: integer }
+            openJobs: { type: integer }
+            totalApplications: { type: integer }
+            overloadCount: { type: integer }
+            recentApplications:
+              type: array
+              items: { $ref: '#/components/schemas/Application' }
+            overloadUsers:
+              type: array
+              items: { $ref: '#/components/schemas/WorkloadRow' }
+        meta: { nullable: true }
+        error: { nullable: true }
+
+    EnvelopeWorkload:
+      type: object
+      properties:
+        success: { type: boolean, enum: [true] }
+        data:
+          type: object
+          properties:
+            workload:
+              type: array
+              items:
+                $ref: '#/components/schemas/WorkloadRow'
+        meta: { nullable: true }
+        error: { nullable: true }

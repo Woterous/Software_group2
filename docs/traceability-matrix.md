@@ -26,8 +26,8 @@ This matrix links requirements to user stories, backlog IDs, and sprint targets.
 | Requirement baseline | `docs/requirement-analysis.md` | `docs/user-stories.md` |
 | Prioritised backlog | `report/ProductBacklog_group2.xlsx` | `docs/traceability-matrix.md` |
 | Architecture baseline | `docs/system-architecture.md` | `docs/data-model.md` |
-| Iteration planning | `docs/iteration-plan.md` | `report/Report_group2.md` |
-| Sprint narrative evidence | `report/Report_group2.md` | `README.md` |
+| Iteration planning | `docs/iteration-plan.md` | `report/Report.md` |
+| Sprint narrative evidence | `report/Report.md` | `README.md` |
 
 ## 3. Governance Rule
 Any change in requirement priority, scope, or target sprint must be synchronized in all of the following:
