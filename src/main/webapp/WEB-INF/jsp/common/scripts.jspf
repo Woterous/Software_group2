@@ -1,0 +1,15 @@
+<script>
+    window.APP_CONTEXT = "${pageContext.request.contextPath}";
+</script>
+<script src="${pageContext.request.contextPath}/static/js/core/config.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/core/mock-db.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/core/mock-engine.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/core/api-client.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/core/ui.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/pages/public-auth.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/pages/ta-pages.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/pages/mo-pages.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/pages/admin-pages.js"></script>
+<script src="${pageContext.request.contextPath}/static/js/pages/bootstrap.js"></script>
+</body>
+</html>

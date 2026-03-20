@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+
+    <display-name>TA Recruitment System</display-name>
+
+    <welcome-file-list>
+        <welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+
+    <servlet>
+        <servlet-name>PageRouterServlet</servlet-name>
+        <servlet-class>com.group02.tars.controller.PageRouterServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>PageRouterServlet</servlet-name>
+        <url-pattern>/pages/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AuthApiServlet</servlet-name>
+        <servlet-class>com.group02.tars.controller.api.AuthApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AuthApiServlet</servlet-name>
+        <url-pattern>/api/v1/auth/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>TaApiServlet</servlet-name>
+        <servlet-class>com.group02.tars.controller.api.TaApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TaApiServlet</servlet-name>
+        <url-pattern>/api/v1/ta/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>MoApiServlet</servlet-name>
+        <servlet-class>com.group02.tars.controller.api.MoApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MoApiServlet</servlet-name>
+        <url-pattern>/api/v1/mo/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>AdminApiServlet</servlet-name>
+        <servlet-class>com.group02.tars.controller.api.AdminApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>AdminApiServlet</servlet-name>
+        <url-pattern>/api/v1/admin/*</url-pattern>
+    </servlet-mapping>
+</web-app>

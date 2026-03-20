@@ -1,0 +1,233 @@
+window.PageModules = window.PageModules || {};
+window.PageModules.mo = window.PageModules.mo || {};
+
+(function () {
+    function requireSession() {
+        return window.UIKit.ensureSessionOrRedirect(["mo"]);
+    }
+
+    function renderStack(container, rows, renderItem) {
+        if (!container) return;
+        if (!rows.length) {
+            container.innerHTML = '<div class="stack-item muted">No records available.</div>';
+            return;
+        }
+        container.innerHTML = rows.map(renderItem).join("");
+    }
+
+    async function initDashboard() {
+        const session = requireSession();
+        if (!session) return;
+
+        const result = await window.ApiClient.moDashboard();
+        if (!result.success) {
+            window.UIKit.toast(result.error.message, "error");
+            return;
+        }
+
+        document.getElementById("mo-active-jobs").textContent = result.data.activeJobs;
+        document.getElementById("mo-total-applicants").textContent = result.data.totalApplicants;
+        document.getElementById("mo-pending-review").textContent = result.data.pendingReview;
+        document.getElementById("mo-selected-count").textContent = result.data.selectedCount;
+
+        renderStack(document.getElementById("mo-near-deadline"), result.data.nearDeadline, (job) => `
+            <div class="stack-item">
+                <strong>${window.UIKit.escapeHtml(job.title)}</strong>
+                <div class="job-meta">
+                    <span>${window.UIKit.escapeHtml(job.moduleName)}</span>
+                    <span>${window.UIKit.escapeHtml(job.deadline)}</span>
+                    <span>${window.UIKit.badge(job.status)}</span>
+                </div>
+            </div>
+        `);
+    }
+
+    async function initJobs() {
+        const session = requireSession();
+        if (!session) return;
+
+        const table = document.getElementById("mo-job-table");
+        const filterForm = document.getElementById("mo-job-filter-form");
+        const editor = document.getElementById("mo-job-editor");
+        const jobForm = document.getElementById("mo-job-form");
+        let currentEditingId = "";
+
+        const load = async () => {
+            const params = {
+                keyword: filterForm.keyword.value.trim(),
+                status: filterForm.status.value
+            };
+            const result = await window.ApiClient.moListJobs(params, session.userId);
+            if (!result.success) {
+                window.UIKit.toast(result.error.message, "error");
+                return;
+            }
+            table.innerHTML = result.data.jobs.map((job) => `
+                <tr>
+                    <td>${window.UIKit.escapeHtml(job.jobId)}</td>
+                    <td>${window.UIKit.escapeHtml(job.title)}</td>
+                    <td>${window.UIKit.escapeHtml(job.moduleName)}</td>
+                    <td>${window.UIKit.escapeHtml(job.deadline)}</td>
+                    <td>${window.UIKit.badge(job.status)}</td>
+                    <td>${window.UIKit.escapeHtml(job.applicantCount)}</td>
+                    <td>
+                        <button class="ghost-btn" type="button" data-edit="${window.UIKit.escapeHtml(job.jobId)}">Edit</button>
+                        <a class="ghost-btn inline" href="${window.APP_CONTEXT}/pages/mo/applicants?jobId=${window.UIKit.escapeHtml(job.jobId)}">Applicants</a>
+                    </td>
+                </tr>
+            `).join("");
+
+            table.querySelectorAll("[data-edit]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const id = btn.dataset.edit;
+                    const row = result.data.jobs.find((j) => j.jobId === id);
+                    if (!row) return;
+                    currentEditingId = id;
+                    editor.classList.remove("hidden");
+                    jobForm.title.value = row.title;
+                    jobForm.moduleName.value = row.moduleName;
+                    jobForm.deadline.value = row.deadline;
+                    jobForm.status.value = row.status;
+                    jobForm.requiredSkills.value = row.requiredSkills;
+                    jobForm.description.value = row.description;
+                });
+            });
+        };
+
+        document.getElementById("mo-open-create-job").addEventListener("click", () => {
+            currentEditingId = "";
+            editor.classList.remove("hidden");
+            jobForm.reset();
+        });
+
+        document.getElementById("mo-cancel-job").addEventListener("click", () => {
+            editor.classList.add("hidden");
+            jobForm.reset();
+            currentEditingId = "";
+        });
+
+        filterForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            load();
+        });
+
+        jobForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const payload = window.UIKit.formToObject(jobForm);
+            if (currentEditingId) payload.jobId = currentEditingId;
+            const result = await window.ApiClient.moSaveJob(payload, session.userId);
+            if (!result.success) {
+                window.UIKit.toast(result.error.message, "error");
+                return;
+            }
+            window.UIKit.toast(currentEditingId ? "Job updated." : "Job created.", "success");
+            editor.classList.add("hidden");
+            jobForm.reset();
+            currentEditingId = "";
+            await load();
+        });
+
+        await load();
+    }
+
+    async function initApplicants() {
+        const session = requireSession();
+        if (!session) return;
+
+        const form = document.getElementById("mo-applicant-filter-form");
+        const table = document.getElementById("mo-applicant-table");
+
+        const jobsResult = await window.ApiClient.moListJobs({}, session.userId);
+        const jobs = jobsResult.success ? jobsResult.data.jobs : [];
+        window.UIKit.setSelectOptions(form.jobId, jobs.map((j) => ({ value: j.jobId, label: `${j.moduleName} (${j.jobId})` })), "value", "label", true, "All Jobs");
+
+        const queryJobId = window.UIKit.getQuery("jobId");
+        if (queryJobId) form.jobId.value = queryJobId;
+
+        const load = async () => {
+            const params = {
+                jobId: form.jobId.value,
+                status: form.status.value,
+                keyword: form.keyword.value.trim()
+            };
+            const result = await window.ApiClient.moListApplicants(params);
+            if (!result.success) {
+                window.UIKit.toast(result.error.message, "error");
+                return;
+            }
+            table.innerHTML = result.data.applicants.map((row) => `
+                <tr>
+                    <td>${window.UIKit.escapeHtml(row.applicantName)}</td>
+                    <td>${window.UIKit.escapeHtml(row.title)}</td>
+                    <td>${window.UIKit.escapeHtml(row.applicantSkills)}</td>
+                    <td>${window.UIKit.badge(row.status)}</td>
+                    <td>${row.cvPath ? `<code>${window.UIKit.escapeHtml(row.cvPath)}</code>` : "-"}</td>
+                    <td><a class="ghost-btn inline" href="${window.APP_CONTEXT}/pages/mo/review?appId=${window.UIKit.escapeHtml(row.applicationId)}">Review</a></td>
+                </tr>
+            `).join("");
+        };
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            load();
+        });
+
+        await load();
+    }
+
+    async function initReview() {
+        const session = requireSession();
+        if (!session) return;
+
+        const appId = window.UIKit.getQuery("appId") || "";
+        const result = await window.ApiClient.moReview(appId);
+        if (!result.success) {
+            window.UIKit.toast(result.error.message, "error");
+            return;
+        }
+
+        const app = result.data.application;
+        document.getElementById("mo-review-candidate").innerHTML = `
+            <strong>${window.UIKit.escapeHtml(app.applicantName)}</strong>
+            <div class="job-meta">
+                <span>Application: ${window.UIKit.escapeHtml(app.applicationId)}</span>
+                <span>Job: ${window.UIKit.escapeHtml(app.title)}</span>
+                <span>Module: ${window.UIKit.escapeHtml(app.moduleName)}</span>
+                <span>${window.UIKit.badge(app.status)}</span>
+            </div>
+            <p class="muted">CV: ${app.cvPath ? window.UIKit.escapeHtml(app.cvPath) : "Not uploaded"}</p>
+        `;
+
+        const skills = (app.applicantSkills || []).map((skill) => `<div class="stack-item">${window.UIKit.escapeHtml(skill)}</div>`).join("");
+        document.getElementById("mo-skill-match").innerHTML = `
+            <div class="stack-item"><strong>Required:</strong> ${window.UIKit.escapeHtml(app.requiredSkills || "-")}</div>
+            ${skills || '<div class="stack-item muted">No skill records</div>'}
+        `;
+
+        const noteEl = document.getElementById("mo-review-note");
+        noteEl.value = app.reviewNote || "";
+
+        document.getElementById("mo-select-btn").addEventListener("click", () => submitStatus("selected", app.applicationId, noteEl.value));
+        document.getElementById("mo-reject-btn").addEventListener("click", () => submitStatus("rejected", app.applicationId, noteEl.value));
+    }
+
+    async function submitStatus(status, appId, note) {
+        window.UIKit.openModal({
+            title: "Confirm Decision",
+            message: `Set status to ${status}?`,
+            onConfirm: async () => {
+                const result = await window.ApiClient.moSetStatus(appId, status, note);
+                if (!result.success) {
+                    window.UIKit.toast(result.error.message, "error");
+                    return;
+                }
+                window.UIKit.toast(`Application ${status}.`, "success");
+            }
+        });
+    }
+
+    window.PageModules.mo.dashboard = initDashboard;
+    window.PageModules.mo.jobs = initJobs;
+    window.PageModules.mo.applicants = initApplicants;
+    window.PageModules.mo.review = initReview;
+})();

@@ -1,0 +1,36 @@
+<%
+    String role = (String) request.getAttribute("appRole");
+    String pageKey = (String) request.getAttribute("appPage");
+    if (role == null) role = "public";
+    if (pageKey == null) pageKey = "";
+
+    java.util.List<String[]> items = new java.util.ArrayList<>();
+    if ("ta".equals(role)) {
+        items.add(new String[]{"dashboard", "Overview", "/pages/ta/dashboard"});
+        items.add(new String[]{"profile", "My Profile", "/pages/ta/profile"});
+        items.add(new String[]{"jobs", "Job Board", "/pages/ta/jobs"});
+        items.add(new String[]{"applications", "Applications", "/pages/ta/applications"});
+    } else if ("mo".equals(role)) {
+        items.add(new String[]{"dashboard", "Overview", "/pages/mo/dashboard"});
+        items.add(new String[]{"jobs", "Job Management", "/pages/mo/jobs"});
+        items.add(new String[]{"applicants", "Applicants", "/pages/mo/applicants"});
+        items.add(new String[]{"review", "Review Center", "/pages/mo/review"});
+    } else if ("admin".equals(role)) {
+        items.add(new String[]{"dashboard", "Overview", "/pages/admin/dashboard"});
+        items.add(new String[]{"users", "Users", "/pages/admin/users"});
+        items.add(new String[]{"applications", "Applications", "/pages/admin/applications"});
+        items.add(new String[]{"workload", "Workload", "/pages/admin/workload"});
+    }
+%>
+<aside class="sidebar glass-panel <%= "public".equals(role) ? "hidden" : "" %>">
+    <div class="sidebar-heading">Workspace</div>
+    <ul class="nav-list">
+        <% for (String[] item : items) { %>
+        <li>
+            <a class="nav-item <%= item[0].equals(pageKey) ? "active" : "" %>" href="${pageContext.request.contextPath}<%= item[2] %>">
+                <span><%= item[1] %></span>
+            </a>
+        </li>
+        <% } %>
+    </ul>
+</aside>

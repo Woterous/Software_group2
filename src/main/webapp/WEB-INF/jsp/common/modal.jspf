@@ -1,0 +1,11 @@
+<div id="modal-root" class="modal-root hidden">
+    <div class="modal-backdrop" data-action="modal-close"></div>
+    <div class="modal-card glass-panel" role="dialog" aria-modal="true">
+        <h3 id="modal-title">Action</h3>
+        <p id="modal-message">Please confirm this action.</p>
+        <div class="modal-actions">
+            <button type="button" class="ghost-btn" data-action="modal-cancel">Cancel</button>
+            <button type="button" class="primary-btn" data-action="modal-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
