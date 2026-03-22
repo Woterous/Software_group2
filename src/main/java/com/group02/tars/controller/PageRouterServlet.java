@@ -51,9 +51,19 @@ public class PageRouterServlet extends HttpServlet {
             return;
         }
 
-        String[] parts = path.split("/");
-        String role = parts.length > 1 ? parts[1] : "public";
-        String page = parts.length > 2 ? parts[2] : "login";
+        String role = "public";
+        String page = "login";
+
+        if (path.startsWith("/ta/") || path.startsWith("/mo/") || path.startsWith("/admin/")) {
+            String[] parts = path.split("/");
+            role = parts.length > 1 ? parts[1] : "public";
+            page = parts.length > 2 ? parts[2] : "dashboard";
+        } else if ("/register".equals(path)) {
+            page = "register";
+        } else if ("/login".equals(path)) {
+            page = "login";
+        }
+
         req.setAttribute("appRole", role);
         req.setAttribute("appPage", page);
         req.setAttribute("appRoute", path);

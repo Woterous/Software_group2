@@ -1,7 +1,7 @@
 <%
-    String role = (String) request.getAttribute("appRole");
-    if (role == null || role.isBlank()) {
-        role = "public";
+    String topbarRole = (String) request.getAttribute("appRole");
+    if (topbarRole == null || topbarRole.isBlank()) {
+        topbarRole = "public";
     }
 %>
 <header class="topbar glass-panel">
@@ -13,7 +13,7 @@
         </div>
     </div>
     <nav class="topbar-right">
-        <span class="role-pill"><%= role.toUpperCase() %></span>
+        <span class="role-pill"><%= topbarRole.toUpperCase() %></span>
         <button class="ghost-btn" type="button" data-action="theme-toggle">Theme</button>
         <button class="ghost-btn" type="button" data-action="mock-reset">Reset Mock</button>
     </nav>
