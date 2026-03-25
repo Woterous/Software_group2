@@ -15,7 +15,7 @@
                 <input type="email" name="email" placeholder="name@school.edu" required />
             </label>
             <label>Password
-                <input type="password" name="password" placeholder="••••••••" required />
+                <input type="password" name="password" placeholder="********" required />
             </label>
             <label>Role
                 <select name="role" required>

@@ -117,6 +117,19 @@
                 setTimeout(() => window.location.reload(), 500);
             });
         });
+
+        document.querySelectorAll('[data-action="logout"]').forEach((btn) => {
+            btn.addEventListener("click", async () => {
+                btn.disabled = true;
+                const result = await window.ApiClient.authLogout();
+                if (!result.success) {
+                    toast(result.error?.message || "Logout failed.", "error");
+                    btn.disabled = false;
+                    return;
+                }
+                window.location.href = `${window.APP_CONTEXT}/pages/login`;
+            });
+        });
     }
 
     function ensureSessionOrRedirect(allowedRoles) {
