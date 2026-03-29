@@ -137,8 +137,34 @@ paths:
       tags: [TA]
       summary: Remove CV path
       responses:
-        '204':
+        '200':
           description: CV removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeCv'
+
+  /ta/profile/cv/upload:
+    post:
+      tags: [TA]
+      summary: Upload CV file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CvUploadRequest'
+      responses:
+        '200':
+          description: CV uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeCv'
+        '413':
+          $ref: '#/components/responses/ValidationError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
 
   /ta/jobs:
     get:
@@ -461,6 +487,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/EnvelopeError'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
 
   schemas:
     Meta:
@@ -568,6 +600,14 @@ components:
       required: [cvPath]
       properties:
         cvPath: { type: string }
+
+    CvUploadRequest:
+      type: object
+      required: [cvFile]
+      properties:
+        cvFile:
+          type: string
+          format: binary
 
     TaApplicationCreateRequest:
       type: object
