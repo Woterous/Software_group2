@@ -112,6 +112,14 @@
 }
 ```
 
+### CvUploadRequest (multipart)
+- content type: `multipart/form-data`
+- file field: `cvFile`
+- schema:
+```text
+cvFile: binary
+```
+
 ### TaApplicationCreateRequest
 ```json
 {
@@ -161,6 +169,7 @@
 - `email` must be unique for registration.
 - `role` must be one of `ta`, `mo`, `admin`.
 - `deadline` must match `YYYY-MM-DD` and should be current or future date.
+- CV upload only accepts `.pdf`, `.doc`, `.docx`, and max size `5MB`.
 - Application uniqueness key: `(userId, jobId)`.
 - Status transition:
   - initial status: `pending`

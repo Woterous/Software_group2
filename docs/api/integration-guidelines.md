@@ -59,10 +59,10 @@ Frontend data source switch location:
 - `src/main/webapp/static/js/core/config.js`
 
 Current mode:
-- `dataSource: "mock"`
+- `dataSource: "api"`
 
 Integration mode:
-1. switch to `dataSource: "api"`
+1. switch to `dataSource: "api"` (already active in current branch)
 2. keep `ApiClient` method names unchanged
 3. implement backend endpoints as documented
 4. validate endpoint parity against `openapi.yaml`
