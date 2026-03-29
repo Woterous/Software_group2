@@ -96,6 +96,7 @@
         },
 
         getSession,
+        setSession,
 
         auth: {
             login({ email, password, role }) {

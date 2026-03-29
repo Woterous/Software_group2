@@ -1,5 +1,5 @@
 window.TARS_CONFIG = {
-    dataSource: "mock", // switch to "api" when backend is ready
+    dataSource: "api",
     apiBasePath: `${window.APP_CONTEXT || ""}/api/v1`,
     pagination: {
         defaultPage: 1,

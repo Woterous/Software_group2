@@ -88,8 +88,10 @@ window.PageModules.mo = window.PageModules.mo || {};
                     jobForm.moduleName.value = row.moduleName;
                     jobForm.deadline.value = row.deadline;
                     jobForm.status.value = row.status;
+                    jobForm.status.dispatchEvent(new Event("change", { bubbles: true }));
                     jobForm.requiredSkills.value = row.requiredSkills;
                     jobForm.description.value = row.description;
+                    window.UIKit.refreshSelectComponents(jobForm);
                 });
             });
         };
@@ -98,12 +100,14 @@ window.PageModules.mo = window.PageModules.mo || {};
             currentEditingId = "";
             editor.classList.remove("hidden");
             jobForm.reset();
+            window.UIKit.refreshSelectComponents(jobForm);
         });
 
         document.getElementById("mo-cancel-job").addEventListener("click", () => {
             editor.classList.add("hidden");
             jobForm.reset();
             currentEditingId = "";
+            window.UIKit.refreshSelectComponents(jobForm);
         });
 
         filterForm.addEventListener("submit", (event) => {
@@ -124,6 +128,7 @@ window.PageModules.mo = window.PageModules.mo || {};
             editor.classList.add("hidden");
             jobForm.reset();
             currentEditingId = "";
+            window.UIKit.refreshSelectComponents(jobForm);
             await load();
         });
 
@@ -142,7 +147,10 @@ window.PageModules.mo = window.PageModules.mo || {};
         window.UIKit.setSelectOptions(form.jobId, jobs.map((j) => ({ value: j.jobId, label: `${j.moduleName} (${j.jobId})` })), "value", "label", true, "All Jobs");
 
         const queryJobId = window.UIKit.getQuery("jobId");
-        if (queryJobId) form.jobId.value = queryJobId;
+        if (queryJobId) {
+            form.jobId.value = queryJobId;
+            form.jobId.dispatchEvent(new Event("change", { bubbles: true }));
+        }
 
         const load = async () => {
             const params = {
