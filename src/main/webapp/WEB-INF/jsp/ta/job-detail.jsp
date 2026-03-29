@@ -9,11 +9,15 @@
     <main class="content-area" id="ta-job-detail-page">
         <article class="panel glass-panel reveal-up" id="ta-job-detail-card"></article>
 
-        <section class="panel glass-panel">
-            <h3>Application Confirmation</h3>
-            <p class="muted">Submitting in mock mode will create a deterministic pending record.</p>
-            <button id="ta-apply-btn" class="primary-btn">Apply Now</button>
-            <a class="ghost-btn inline" href="${pageContext.request.contextPath}/pages/ta/jobs">Back to Job Board</a>
+        <section class="panel glass-panel job-apply-panel">
+            <div class="job-apply-copy">
+                <h3>Application Confirmation</h3>
+                <p class="muted">Submitting in mock mode will create a deterministic pending record.</p>
+            </div>
+            <div class="job-detail-actions">
+                <button id="ta-apply-btn" class="primary-btn" type="button">Apply Now</button>
+                <a class="glass-secondary-btn inline" href="${pageContext.request.contextPath}/pages/ta/jobs">Back to Job Board</a>
+            </div>
         </section>
     </main>
 </div>

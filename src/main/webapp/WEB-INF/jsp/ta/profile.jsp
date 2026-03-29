@@ -35,11 +35,11 @@
         <section class="panel glass-panel reveal-up">
             <div class="panel-head">
                 <h2>CV Management</h2>
-                <span class="muted">Mock path-based upload</span>
+                <span class="muted">File upload (.pdf, .doc, .docx, max 5MB)</span>
             </div>
             <form id="ta-cv-form" class="form-inline">
-                <input type="text" name="cvPath" placeholder="/uploads/ta_cv.pdf" required />
-                <button class="primary-btn" type="submit">Update CV</button>
+                <input type="file" name="cvFile" accept=".pdf,.doc,.docx" required />
+                <button class="primary-btn" type="submit">Upload CV</button>
                 <button class="ghost-btn" type="button" id="ta-cv-remove">Remove</button>
             </form>
             <p class="muted" id="ta-cv-current">Current CV: -</p>
