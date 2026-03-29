@@ -40,6 +40,7 @@ It is **decision-complete** for backend implementation:
 - `GET /ta/dashboard`
 - `GET /ta/profile`
 - `PUT /ta/profile`
+- `POST /ta/profile/cv/upload`
 - `POST /ta/profile/cv`
 - `DELETE /ta/profile/cv`
 - `GET /ta/jobs`
@@ -72,7 +73,7 @@ It is **decision-complete** for backend implementation:
 | `/pages/login` | `POST /auth/login` |
 | `/pages/register` | `POST /auth/register` |
 | `/pages/ta/dashboard` | `GET /ta/dashboard` |
-| `/pages/ta/profile` | `GET/PUT /ta/profile`, `POST/DELETE /ta/profile/cv` |
+| `/pages/ta/profile` | `GET/PUT /ta/profile`, `POST /ta/profile/cv/upload`, `DELETE /ta/profile/cv` |
 | `/pages/ta/jobs` | `GET /ta/jobs`, `POST /ta/applications` |
 | `/pages/ta/job-detail` | `GET /ta/jobs/{jobId}`, `POST /ta/applications` |
 | `/pages/ta/applications` | `GET /ta/applications` |

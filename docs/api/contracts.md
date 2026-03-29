@@ -118,6 +118,27 @@ Request body:
 { "cvPath": "/uploads/emma_cv_v2.pdf" }
 ```
 
+### POST `/ta/profile/cv/upload`
+Upload CV file and persist managed file path.
+
+Request type:
+- `multipart/form-data`
+- file field: `cvFile`
+- allowed file types: `.pdf`, `.doc`, `.docx`
+- max file size: `5MB`
+
+Success response (`200`):
+```json
+{
+  "success": true,
+  "data": {
+    "cvPath": "/uploads/TA001_1711452645123_ab12cd34.pdf"
+  },
+  "meta": null,
+  "error": null
+}
+```
+
 ### DELETE `/ta/profile/cv`
 Remove CV path reference.
 
