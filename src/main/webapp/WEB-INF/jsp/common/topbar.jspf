@@ -15,7 +15,6 @@
     <nav class="topbar-right">
         <span class="role-pill"><%= topbarRole.toUpperCase() %></span>
         <button class="ghost-btn" type="button" data-action="theme-toggle">Theme</button>
-        <button class="ghost-btn" type="button" data-action="mock-reset">Reset Mock</button>
         <% if (!"public".equals(topbarRole)) { %>
         <button class="ghost-btn" type="button" data-action="logout">Logout</button>
         <% } %>

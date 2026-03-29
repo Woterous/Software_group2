@@ -24,13 +24,12 @@
 %>
 <aside class="sidebar glass-panel <%= "public".equals(sidebarRole) ? "hidden" : "" %>">
     <div class="sidebar-heading">Workspace</div>
-    <ul class="nav-list">
+    <nav class="nav-segmented" aria-label="Workspace sections">
+        <span class="nav-indicator" aria-hidden="true"></span>
         <% for (String[] item : items) { %>
-        <li>
-            <a class="nav-item <%= item[0].equals(sidebarPageKey) ? "active" : "" %>" href="${pageContext.request.contextPath}<%= item[2] %>">
-                <span><%= item[1] %></span>
-            </a>
-        </li>
+        <a class="nav-item <%= item[0].equals(sidebarPageKey) ? "active" : "" %>" href="${pageContext.request.contextPath}<%= item[2] %>">
+            <span><%= item[1] %></span>
+        </a>
         <% } %>
-    </ul>
+    </nav>
 </aside>
