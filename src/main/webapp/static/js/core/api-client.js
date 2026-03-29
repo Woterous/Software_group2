@@ -5,16 +5,32 @@
     const errEnvelope = (code, message, details = []) => ({ success: false, data: null, meta: null, error: { code, message, details } });
 
     async function fetchJson(path, options = {}) {
+        const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+        const headers = {
+            ...(options.headers || {})
+        };
+        const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === "content-type");
+        if (!isFormData && !hasContentType) {
+            headers["Content-Type"] = "application/json";
+        }
+
         const res = await fetch(`${cfg.apiBasePath}${path}`, {
             credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-                ...(options.headers || {})
-            },
+            headers,
             ...options
         });
-        const payload = await res.json();
-        return payload;
+        const raw = await res.text();
+        if (!raw) {
+            if (!res.ok) {
+                return errEnvelope(`HTTP_${res.status}`, `Request failed with status ${res.status}.`);
+            }
+            return okEnvelope({}, null);
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            return errEnvelope("SYSTEM_INVALID_RESPONSE", "Server response is not valid JSON.");
+        }
     }
 
     function fromMock(result, meta = null) {
@@ -59,6 +75,12 @@
         async taUpdateCv(userId, payload) {
             if (this.mode === "mock") return fromMock(window.MockEngine.ta.updateCv(userId, payload.cvPath));
             return fetchJson("/ta/profile/cv", { method: "POST", body: JSON.stringify(payload) });
+        },
+        async taUploadCv(userId, file) {
+            if (this.mode === "mock") return fromMock(window.MockEngine.ta.updateCv(userId, `/uploads/${file.name}`));
+            const formData = new FormData();
+            formData.append("cvFile", file);
+            return fetchJson("/ta/profile/cv/upload", { method: "POST", body: formData });
         },
         async taDeleteCv(userId) {
             if (this.mode === "mock") return fromMock(window.MockEngine.ta.updateCv(userId, ""));
@@ -139,9 +161,11 @@
 
         lookups: {
             modules() {
+                if (cfg.dataSource !== "mock") return [];
                 return window.MockEngine.lookups.modules();
             },
             jobs() {
+                if (cfg.dataSource !== "mock") return [];
                 return window.MockEngine.lookups.jobs();
             }
         }
