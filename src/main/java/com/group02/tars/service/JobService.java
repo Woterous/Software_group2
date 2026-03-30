@@ -1,8 +1,20 @@
 package com.group02.tars.service;
 
-/**
- * Marker interface for Sprint 2 backend integration contract.
- */
+import com.group02.tars.model.Job;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 public interface JobService {
-    // TODO [Sprint 3]: Implement job CRUD and listing methods.
+    PagedResult<Job> listJobs(String keyword, String module, String status, int page, int size) throws IOException;
+
+    Job getJobById(String jobId) throws IOException, ServiceException;
+
+    List<Job> findOpenOrClosingJobs() throws IOException;
+
+    List<String> modules() throws IOException;
+
+    record PagedResult<T>(List<T> items, Map<String, Object> meta) {
+    }
 }

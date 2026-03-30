@@ -1,8 +1,15 @@
 package com.group02.tars.service;
 
-/**
- * Marker interface for Sprint 2 backend integration contract.
- */
+import com.group02.tars.model.Application;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 public interface ApplicationService {
-    // TODO [Sprint 3]: Implement application lifecycle methods.
+    Application createApplication(String userId, String jobId) throws IOException, ServiceException;
+
+    List<Map<String, Object>> listMyApplications(String userId, String status, String keyword) throws IOException;
+
+    Map<String, Object> dashboard(String userId) throws IOException;
 }
