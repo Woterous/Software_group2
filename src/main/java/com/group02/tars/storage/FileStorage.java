@@ -1,8 +1,22 @@
 package com.group02.tars.storage;
 
-/**
- * Storage adapter contract for file-based persistence.
- */
+import com.group02.tars.model.Application;
+import com.group02.tars.model.Job;
+import com.group02.tars.model.User;
+
+import java.io.IOException;
+import java.util.List;
+
 public interface FileStorage {
-    // TODO [Sprint 3]: Implement JSON/TXT/CSV/XML read-write abstraction.
+    List<User> loadUsers() throws IOException;
+
+    void saveUsers(List<User> users) throws IOException;
+
+    List<Job> loadJobs() throws IOException;
+
+    void saveJobs(List<Job> jobs) throws IOException;
+
+    List<Application> loadApplications() throws IOException;
+
+    void saveApplications(List<Application> applications) throws IOException;
 }

@@ -7,4 +7,8 @@ public class Job {
     public String requiredSkills;
     public String deadline;
     public String description;
+    public String status;
+    public String postedBy;
+    public Integer weeklyHours;
+    public String createdAt;
 }
