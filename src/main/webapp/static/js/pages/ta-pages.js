@@ -65,6 +65,75 @@ window.PageModules.ta = window.PageModules.ta || {};
         const cvForm = document.getElementById("ta-cv-form");
         const cvCurrent = document.getElementById("ta-cv-current");
         const cvFileInput = cvForm.querySelector('input[name="cvFile"]');
+        const cvDropzone = document.getElementById("ta-cv-dropzone");
+        const cvPickBtn = document.getElementById("ta-cv-pick-btn");
+        const cvSelectedFile = document.getElementById("ta-cv-selected-file");
+        const maxCvSize = 5 * 1024 * 1024;
+        const allowedCvExt = new Set(["pdf", "doc", "docx"]);
+        let selectedCvFile = null;
+
+        const getCvExtension = (filename) => {
+            if (!filename || !filename.includes(".")) return "";
+            return filename.split(".").pop().toLowerCase();
+        };
+
+        const formatFileSize = (bytes) => {
+            if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+            if (bytes < 1024 * 1024) {
+                return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+            }
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        };
+
+        const updateCvSelectionLabel = () => {
+            if (!cvSelectedFile) return;
+            cvSelectedFile.textContent = selectedCvFile
+                ? `${selectedCvFile.name} (${formatFileSize(selectedCvFile.size)})`
+                : "No file selected";
+        };
+
+        const clearSelectedCvFile = () => {
+            selectedCvFile = null;
+            if (cvFileInput) {
+                cvFileInput.value = "";
+            }
+            updateCvSelectionLabel();
+        };
+
+        const validateCvFile = (file) => {
+            if (!file) {
+                return "Please choose a CV file first.";
+            }
+            const ext = getCvExtension(file.name);
+            if (!allowedCvExt.has(ext)) {
+                return "Only PDF, DOC, and DOCX files are allowed.";
+            }
+            if (file.size > maxCvSize) {
+                return "File size must be 5MB or less.";
+            }
+            return null;
+        };
+
+        const setSelectedCvFile = (file) => {
+            const error = validateCvFile(file);
+            if (error) {
+                clearSelectedCvFile();
+                window.UIKit.toast(error, "warn");
+                return false;
+            }
+            selectedCvFile = file;
+            if (cvFileInput) {
+                try {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    cvFileInput.files = transfer.files;
+                } catch (_) {
+                    // Some environments prevent setting input.files directly.
+                }
+            }
+            updateCvSelectionLabel();
+            return true;
+        };
 
         const load = async () => {
             const result = await window.ApiClient.taProfile(session.userId);
@@ -78,6 +147,60 @@ window.PageModules.ta = window.PageModules.ta || {};
             cvCurrent.textContent = `Current CV: ${profile.cvPath || "Not uploaded"}`;
         };
 
+        if (cvPickBtn && cvFileInput) {
+            cvPickBtn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                cvFileInput.click();
+            });
+        }
+
+        if (cvDropzone && cvFileInput) {
+            cvDropzone.addEventListener("click", () => {
+                cvFileInput.click();
+            });
+
+            cvDropzone.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    cvFileInput.click();
+                }
+            });
+
+            ["dragenter", "dragover"].forEach((eventName) => {
+                cvDropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    cvDropzone.classList.add("is-dragover");
+                });
+            });
+
+            ["dragleave", "drop"].forEach((eventName) => {
+                cvDropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    cvDropzone.classList.remove("is-dragover");
+                });
+            });
+
+            cvDropzone.addEventListener("drop", (event) => {
+                const file = event.dataTransfer?.files?.[0];
+                setSelectedCvFile(file);
+            });
+        }
+
+        if (cvFileInput) {
+            cvFileInput.addEventListener("change", () => {
+                const file = cvFileInput.files?.[0];
+                if (!file) {
+                    clearSelectedCvFile();
+                    return;
+                }
+                setSelectedCvFile(file);
+            });
+        }
+
+        updateCvSelectionLabel();
         await load();
 
         profileForm.addEventListener("submit", async (event) => {
@@ -94,9 +217,10 @@ window.PageModules.ta = window.PageModules.ta || {};
 
         cvForm.addEventListener("submit", async (event) => {
             event.preventDefault();
-            const file = cvFileInput?.files?.[0];
-            if (!file) {
-                window.UIKit.toast("Please choose a CV file first.", "warn");
+            const file = selectedCvFile || cvFileInput?.files?.[0];
+            const error = validateCvFile(file);
+            if (error) {
+                window.UIKit.toast(error, "warn");
                 return;
             }
             const result = await window.ApiClient.taUploadCv(session.userId, file);
@@ -106,6 +230,7 @@ window.PageModules.ta = window.PageModules.ta || {};
             }
             window.UIKit.toast("CV uploaded.", "success");
             cvForm.reset();
+            clearSelectedCvFile();
             await load();
         });
 
@@ -113,6 +238,7 @@ window.PageModules.ta = window.PageModules.ta || {};
             const result = await window.ApiClient.taDeleteCv(session.userId);
             if (result.success) {
                 window.UIKit.toast("CV removed.", "warn");
+                clearSelectedCvFile();
                 await load();
             }
         });
