@@ -6,4 +6,5 @@ public class Application {
     public String jobId;
     public String status;
     public String reviewNote;
+    public String updatedAt;
 }
