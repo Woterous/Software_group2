@@ -5,6 +5,7 @@ import com.group02.tars.model.Job;
 import com.group02.tars.model.User;
 import com.group02.tars.service.JobService;
 import com.group02.tars.service.ServiceException;
+import com.group02.tars.util.DataDirectoryResolver;
 import com.group02.tars.util.JsonResponse;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -233,13 +234,7 @@ public class TaApiServlet extends BaseApiServlet {
     }
 
     private Path resolveUploadDir() throws IOException {
-        String uploadRoot = getServletContext().getRealPath("/WEB-INF/data/uploads");
-        Path uploadDir;
-        if (uploadRoot != null && !uploadRoot.isBlank()) {
-            uploadDir = Paths.get(uploadRoot);
-        } else {
-            uploadDir = Paths.get(System.getProperty("java.io.tmpdir"), "tars-data", "uploads");
-        }
+        Path uploadDir = DataDirectoryResolver.resolveUploadsDir(getServletContext());
         Files.createDirectories(uploadDir);
         return uploadDir;
     }

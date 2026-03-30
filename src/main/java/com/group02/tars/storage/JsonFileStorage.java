@@ -6,12 +6,16 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.group02.tars.model.Application;
 import com.group02.tars.model.Job;
 import com.group02.tars.model.User;
+import com.group02.tars.util.DataDirectoryResolver;
 import jakarta.servlet.ServletContext;
 
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,8 +34,9 @@ public class JsonFileStorage implements FileStorage {
 
     public JsonFileStorage(ServletContext context) throws IOException {
         this.mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-        Path dataDir = resolveDataDir(context);
+        Path dataDir = DataDirectoryResolver.resolveDataDir(context);
         Files.createDirectories(dataDir);
+        migrateLegacyDataIfNeeded(context, dataDir);
 
         this.usersFile = dataDir.resolve("users.json");
         this.jobsFile = dataDir.resolve("jobs.json");
@@ -82,19 +87,71 @@ public class JsonFileStorage implements FileStorage {
         }
     }
 
-    private Path resolveDataDir(ServletContext context) {
-        String webInfData = context.getRealPath("/WEB-INF/data");
-        if (webInfData != null && !webInfData.isBlank()) {
-            return Paths.get(webInfData);
-        }
-        return Paths.get(System.getProperty("java.io.tmpdir"), "tars-data");
-    }
-
     private <T> List<T> readList(Path path, TypeReference<List<T>> type) throws IOException {
         if (!Files.exists(path) || Files.size(path) == 0L) {
             return new ArrayList<>();
         }
         return mapper.readValue(path.toFile(), type);
+    }
+
+    private void migrateLegacyDataIfNeeded(ServletContext context, Path targetDataDir) throws IOException {
+        Path legacyDataDir = DataDirectoryResolver.resolveLegacyWebInfDataDir(context);
+        if (legacyDataDir == null || !Files.exists(legacyDataDir)) {
+            return;
+        }
+        if (legacyDataDir.equals(targetDataDir)) {
+            return;
+        }
+
+        Path targetUsers = targetDataDir.resolve("users.json");
+        Path targetJobs = targetDataDir.resolve("jobs.json");
+        Path targetApplications = targetDataDir.resolve("applications.json");
+        Path targetUploads = targetDataDir.resolve("uploads");
+        boolean alreadyInitialized =
+            Files.exists(targetUsers) ||
+                Files.exists(targetJobs) ||
+                Files.exists(targetApplications) ||
+                Files.exists(targetUploads);
+        if (alreadyInitialized) {
+            return;
+        }
+
+        copyFileIfPresent(legacyDataDir.resolve("users.json"), targetUsers);
+        copyFileIfPresent(legacyDataDir.resolve("jobs.json"), targetJobs);
+        copyFileIfPresent(legacyDataDir.resolve("applications.json"), targetApplications);
+        copyDirectoryIfPresent(legacyDataDir.resolve("uploads"), targetUploads);
+    }
+
+    private void copyFileIfPresent(Path source, Path target) throws IOException {
+        if (!Files.exists(source) || Files.size(source) == 0L) {
+            return;
+        }
+        Files.createDirectories(target.getParent());
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    private void copyDirectoryIfPresent(Path sourceDir, Path targetDir) throws IOException {
+        if (!Files.isDirectory(sourceDir)) {
+            return;
+        }
+        Files.walkFileTree(sourceDir, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                Path relative = sourceDir.relativize(dir);
+                Path target = targetDir.resolve(relative).normalize();
+                Files.createDirectories(target);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Path relative = sourceDir.relativize(file);
+                Path target = targetDir.resolve(relative).normalize();
+                Files.createDirectories(target.getParent());
+                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 
     private void bootstrapIfMissing() throws IOException {
