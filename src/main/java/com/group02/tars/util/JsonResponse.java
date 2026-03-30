@@ -1,45 +1,63 @@
 package com.group02.tars.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
-/**
- * Minimal JSON envelope writer for stub API responses.
- */
 public final class JsonResponse {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonResponse() {
     }
 
-    public static void writeError(HttpServletResponse resp, int status, String code, String message, String path) throws IOException {
+    public static void writeSuccess(HttpServletResponse resp, int status, Object data, Object meta) throws IOException {
         resp.setStatus(status);
         resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
         resp.setContentType("application/json");
 
-        String payload = "{" +
-            "\"success\":false," +
-            "\"data\":null," +
-            "\"meta\":{\"path\":\"" + escape(path) + "\"}," +
-            "\"error\":{" +
-            "\"code\":\"" + escape(code) + "\"," +
-            "\"message\":\"" + escape(message) + "\"," +
-            "\"details\":[]" +
-            "}" +
-            "}";
-
-        resp.getWriter().write(payload);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("success", true);
+        payload.put("data", data);
+        payload.put("meta", meta);
+        payload.put("error", null);
+        MAPPER.writeValue(resp.getWriter(), payload);
     }
 
-    private static String escape(String input) {
-        if (input == null) {
-            return "";
-        }
-        return input
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r");
+    public static void writeError(HttpServletResponse resp, int status, String code, String message, String path) throws IOException {
+        writeError(resp, status, code, message, path, List.of());
+    }
+
+    public static void writeError(
+        HttpServletResponse resp,
+        int status,
+        String code,
+        String message,
+        String path,
+        List<String> details
+    ) throws IOException {
+        resp.setStatus(status);
+        resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        resp.setContentType("application/json");
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("path", path == null ? "" : path);
+
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("code", code);
+        error.put("message", message);
+        error.put("details", details == null ? List.of() : details);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("success", false);
+        payload.put("data", null);
+        payload.put("meta", meta);
+        payload.put("error", error);
+        MAPPER.writeValue(resp.getWriter(), payload);
     }
 }
