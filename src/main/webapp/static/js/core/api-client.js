@@ -47,8 +47,25 @@
             if (this.mode === "mock") return fromMock(window.MockEngine.auth.login(payload));
             return fetchJson("/auth/login", { method: "POST", body: JSON.stringify(payload) });
         },
-        async authRegister(payload) {
-            if (this.mode === "mock") return fromMock(window.MockEngine.auth.register(payload));
+        async authRegister(payload, cvFile) {
+            if (this.mode === "mock") {
+                const mockPayload = { ...payload };
+                if (cvFile && !mockPayload.cvPath) {
+                    mockPayload.cvPath = `/uploads/${cvFile.name}`;
+                }
+                return fromMock(window.MockEngine.auth.register(mockPayload));
+            }
+
+            if (cvFile) {
+                const formData = new FormData();
+                Object.entries(payload || {}).forEach(([key, value]) => {
+                    if (value == null) return;
+                    formData.append(key, String(value));
+                });
+                formData.append("cvFile", cvFile);
+                return fetchJson("/auth/register", { method: "POST", body: formData });
+            }
+
             return fetchJson("/auth/register", { method: "POST", body: JSON.stringify(payload) });
         },
         async authLogout() {

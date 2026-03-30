@@ -118,8 +118,16 @@
                     <label class="full-row">Skills
                         <input type="text" name="skills" placeholder="Java, SQL, Communication" />
                     </label>
-                    <label class="full-row">CV Path (optional)
-                        <input type="text" name="cvPath" placeholder="/uploads/alex_cv.pdf" />
+                    <label class="full-row">CV (optional)
+                        <input id="register-cv-file-input" class="cv-upload-input" type="file" name="cvFile" accept=".pdf,.doc,.docx" />
+                        <div id="register-cv-dropzone" class="cv-dropzone" tabindex="0" role="button" aria-label="Drop CV file here or choose file">
+                            <div class="cv-dropzone-inner">
+                                <div class="cv-dropzone-title">Drop your CV here</div>
+                                <div class="cv-dropzone-hint">PDF, DOC, or DOCX up to 5MB</div>
+                                <button id="register-cv-pick-btn" class="glass-secondary-btn inline cv-pick-btn" type="button">Choose File</button>
+                                <div id="register-cv-selected-file" class="cv-dropzone-file">No file selected</div>
+                            </div>
+                        </div>
                     </label>
                     <button class="primary-btn full-row" type="submit">Create Account</button>
                 </form>

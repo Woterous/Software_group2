@@ -317,15 +317,151 @@ window.PageModules.public = window.PageModules.public || {};
         bindPasswordToggle(form, passwordInput, {
             onChange: () => characters.sync()
         });
+
+        const cvFileInput = document.getElementById("register-cv-file-input");
+        const cvDropzone = document.getElementById("register-cv-dropzone");
+        const cvPickBtn = document.getElementById("register-cv-pick-btn");
+        const cvSelectedFile = document.getElementById("register-cv-selected-file");
+        const maxCvSize = 5 * 1024 * 1024;
+        const allowedCvExt = new Set(["pdf", "doc", "docx"]);
+        let selectedCvFile = null;
+
+        const getCvExtension = (filename) => {
+            if (!filename || !filename.includes(".")) return "";
+            return filename.split(".").pop().toLowerCase();
+        };
+
+        const formatFileSize = (bytes) => {
+            if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+            if (bytes < 1024 * 1024) {
+                return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+            }
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        };
+
+        const updateCvLabel = () => {
+            if (!cvSelectedFile) return;
+            cvSelectedFile.textContent = selectedCvFile
+                ? `${selectedCvFile.name} (${formatFileSize(selectedCvFile.size)})`
+                : "No file selected";
+        };
+
+        const clearSelectedCvFile = () => {
+            selectedCvFile = null;
+            if (cvFileInput) {
+                cvFileInput.value = "";
+            }
+            updateCvLabel();
+        };
+
+        const validateCvFile = (file) => {
+            if (!file) return "Please choose a CV file first.";
+            const ext = getCvExtension(file.name);
+            if (!allowedCvExt.has(ext)) return "Only PDF, DOC, and DOCX files are allowed.";
+            if (file.size > maxCvSize) return "File size must be 5MB or less.";
+            return null;
+        };
+
+        const setSelectedCvFile = (file) => {
+            const error = validateCvFile(file);
+            if (error) {
+                clearSelectedCvFile();
+                window.UIKit.toast(error, "warn");
+                return false;
+            }
+            selectedCvFile = file;
+            if (cvFileInput) {
+                try {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    cvFileInput.files = transfer.files;
+                } catch (_) {
+                    // Some environments prevent setting input.files directly.
+                }
+            }
+            updateCvLabel();
+            return true;
+        };
+
+        if (cvPickBtn && cvFileInput) {
+            cvPickBtn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                cvFileInput.click();
+            });
+        }
+
+        if (cvDropzone && cvFileInput) {
+            cvDropzone.addEventListener("click", () => {
+                cvFileInput.click();
+            });
+
+            cvDropzone.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    cvFileInput.click();
+                }
+            });
+
+            ["dragenter", "dragover"].forEach((eventName) => {
+                cvDropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    cvDropzone.classList.add("is-dragover");
+                });
+            });
+
+            ["dragleave", "drop"].forEach((eventName) => {
+                cvDropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    cvDropzone.classList.remove("is-dragover");
+                });
+            });
+
+            cvDropzone.addEventListener("drop", (event) => {
+                const file = event.dataTransfer?.files?.[0];
+                if (file) {
+                    setSelectedCvFile(file);
+                }
+            });
+        }
+
+        if (cvFileInput) {
+            cvFileInput.addEventListener("change", () => {
+                const file = cvFileInput.files?.[0];
+                if (!file) {
+                    clearSelectedCvFile();
+                    return;
+                }
+                setSelectedCvFile(file);
+            });
+        }
+
+        updateCvLabel();
+
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
             const payload = window.UIKit.formToObject(form);
-            const result = await window.ApiClient.authRegister(payload);
+            delete payload.cvFile;
+
+            const file = selectedCvFile || cvFileInput?.files?.[0] || null;
+            if (file) {
+                const error = validateCvFile(file);
+                if (error) {
+                    window.UIKit.toast(error, "warn");
+                    return;
+                }
+            }
+
+            const result = await window.ApiClient.authRegister(payload, file);
             if (!result.success) {
                 window.UIKit.toast(result.error.message, "error");
                 return;
             }
             window.UIKit.toast("Account created. Please sign in.", "success");
+            form.reset();
+            clearSelectedCvFile();
             setTimeout(() => {
                 window.location.href = `${window.APP_CONTEXT}/pages/login`;
             }, 360);
