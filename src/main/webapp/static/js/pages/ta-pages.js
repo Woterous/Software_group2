@@ -6,10 +6,24 @@ window.PageModules.ta = window.PageModules.ta || {};
         return window.UIKit.ensureSessionOrRedirect(["ta"]);
     }
 
-    function renderList(container, rows, renderer) {
+    function renderEmptyState(container, title, description) {
+        if (!container) return;
+        container.innerHTML = `
+            <div class="empty-state">
+                <strong>${window.UIKit.escapeHtml(title || "Nothing here yet")}</strong>
+                <p>${window.UIKit.escapeHtml(description || "This area will update as soon as data becomes available.")}</p>
+            </div>
+        `;
+    }
+
+    function renderList(container, rows, renderer, emptyState) {
         if (!container) return;
         if (!rows.length) {
-            container.innerHTML = '<div class="stack-item muted">No data available.</div>';
+            renderEmptyState(
+                container,
+                emptyState?.title || "No data available",
+                emptyState?.description || "This module will populate when new activity is available."
+            );
             return;
         }
         container.innerHTML = rows.map(renderer).join("");
@@ -21,6 +35,83 @@ window.PageModules.ta = window.PageModules.ta || {};
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean);
+    }
+
+    function parseDate(rawDate) {
+        if (!rawDate) return null;
+        const date = new Date(`${rawDate}T00:00:00`);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatShortDate(rawDate) {
+        const date = parseDate(rawDate);
+        if (!date) return rawDate || "TBD";
+        return new Intl.DateTimeFormat("en-US", {
+            month: "short",
+            day: "numeric"
+        }).format(date);
+    }
+
+    function deadlineMeta(rawDate) {
+        const date = parseDate(rawDate);
+        if (!date) {
+            return {
+                tone: "muted",
+                label: "Deadline TBD",
+                detail: "Schedule not announced"
+            };
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((date.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+        if (diffDays < 0) {
+            return {
+                tone: "expired",
+                label: `${Math.abs(diffDays)}d overdue`,
+                detail: `Deadline was ${formatShortDate(rawDate)}`
+            };
+        }
+        if (diffDays === 0) {
+            return {
+                tone: "today",
+                label: "Due today",
+                detail: `Closes on ${formatShortDate(rawDate)}`
+            };
+        }
+        if (diffDays <= 3) {
+            return {
+                tone: "urgent",
+                label: `${diffDays}d left`,
+                detail: `Closes ${formatShortDate(rawDate)}`
+            };
+        }
+        if (diffDays <= 7) {
+            return {
+                tone: "watch",
+                label: `${diffDays}d left`,
+                detail: `Closes ${formatShortDate(rawDate)}`
+            };
+        }
+        return {
+            tone: "calm",
+            label: formatShortDate(rawDate),
+            detail: `Deadline ${formatShortDate(rawDate)}`
+        };
+    }
+
+    function applicationStatusContext(status, reviewNote) {
+        const normalized = String(status || "").toLowerCase();
+        if (reviewNote) {
+            return reviewNote;
+        }
+        if (normalized === "selected") {
+            return "Positive decision recorded by the module owner.";
+        }
+        if (normalized === "rejected") {
+            return "Final decision recorded. Review other active openings.";
+        }
+        return "Still under review by the module owner.";
     }
 
     async function initDashboard() {
@@ -37,24 +128,63 @@ window.PageModules.ta = window.PageModules.ta || {};
         document.getElementById("ta-pending").textContent = result.data.pending;
         document.getElementById("ta-selected").textContent = result.data.selected;
 
+        const heroHighlight = document.getElementById("ta-hero-highlight");
+        const heroNote = document.getElementById("ta-hero-note");
+        if (heroHighlight && heroNote) {
+            if (result.data.pending > 0) {
+                heroHighlight.textContent = `${result.data.pending} application${result.data.pending > 1 ? "s are" : " is"} currently awaiting review`;
+                heroNote.textContent = "Use the applications table to watch for decisions and keep your CV aligned with upcoming roles.";
+            } else if (result.data.openJobs > 0) {
+                heroHighlight.textContent = `${result.data.openJobs} active role${result.data.openJobs > 1 ? "s are" : " is"} worth reviewing now`;
+                heroNote.textContent = "Prioritise roles with nearer deadlines first, then refine by module fit and required skills.";
+            } else {
+                heroHighlight.textContent = "Your workspace is up to date for now";
+                heroNote.textContent = "Check back later for new openings or refresh your profile to stay application-ready.";
+            }
+        }
+
         renderList(document.getElementById("ta-latest-apps"), result.data.latestApplications, (row) => `
-            <div class="stack-item">
-                <strong>${window.UIKit.escapeHtml(row.title)}</strong>
-                <div class="job-meta">
-                    <span>${window.UIKit.escapeHtml(row.moduleName)}</span>
-                    <span>${window.UIKit.badge(row.status)}</span>
-                    <span>${window.UIKit.escapeHtml(row.updatedAt)}</span>
+            <article class="activity-card">
+                <div class="activity-card-main">
+                    <div class="activity-card-head">
+                        <strong>${window.UIKit.escapeHtml(row.title)}</strong>
+                        ${window.UIKit.badge(row.status)}
+                    </div>
+                    <div class="activity-card-meta">
+                        <span>${window.UIKit.escapeHtml(row.moduleName)}</span>
+                        <span>Updated ${window.UIKit.escapeHtml(formatShortDate(row.updatedAt))}</span>
+                    </div>
+                    <p class="activity-card-note">${window.UIKit.escapeHtml(applicationStatusContext(row.status, row.reviewNote))}</p>
                 </div>
-            </div>
-        `);
+            </article>
+        `, {
+            title: "No applications yet",
+            description: "When you apply for roles, the latest movement will appear here with review context."
+        });
 
         renderList(document.getElementById("ta-recommended-jobs"), result.data.recommendedJobs, (row) => `
-            <div class="stack-item">
-                <strong>${window.UIKit.escapeHtml(row.title)}</strong>
-                <div class="job-meta"><span>${window.UIKit.escapeHtml(row.moduleName)}</span><span>${window.UIKit.badge(row.status)}</span></div>
-                <a href="${window.APP_CONTEXT}/pages/ta/job-detail?id=${window.UIKit.escapeHtml(row.jobId)}">View Detail</a>
-            </div>
-        `);
+            <article class="recommend-card">
+                <div class="recommend-card-head">
+                    <div>
+                        <span class="job-card-eyebrow">Module ${window.UIKit.escapeHtml(row.moduleName)}</span>
+                        <h4>${window.UIKit.escapeHtml(row.title)}</h4>
+                    </div>
+                    <span class="deadline-chip deadline-chip--${deadlineMeta(row.deadline).tone}">${window.UIKit.escapeHtml(deadlineMeta(row.deadline).label)}</span>
+                </div>
+                <p class="recommend-card-copy">${window.UIKit.escapeHtml(row.description)}</p>
+                <div class="recommend-meta-row">
+                    <span>${window.UIKit.escapeHtml(deadlineMeta(row.deadline).detail)}</span>
+                    <span>${window.UIKit.escapeHtml(`${row.weeklyHours || "-"} hrs / week`)}</span>
+                </div>
+                <div class="skill-pill-list recommend-skill-list">
+                    ${parseSkills(row.requiredSkills).slice(0, 3).map((skill) => `<span class="skill-pill">${window.UIKit.escapeHtml(skill)}</span>`).join("")}
+                </div>
+                <a class="text-link" href="${window.APP_CONTEXT}/pages/ta/job-detail?id=${window.UIKit.escapeHtml(row.jobId)}">View details</a>
+            </article>
+        `, {
+            title: "No recommendations right now",
+            description: "Open roles will surface here once there are active opportunities to review."
+        });
     }
 
     async function initProfile() {
@@ -144,7 +274,15 @@ window.PageModules.ta = window.PageModules.ta || {};
             profileForm.skills.value = (profile.skills || []).join(", ");
             profileForm.major.value = profile.major || "";
             profileForm.contact.value = profile.contact || "";
-            cvCurrent.textContent = `Current CV: ${profile.cvPath || "Not uploaded"}`;
+            const hasCv = !!profile.cvPath;
+            const cvFileName = hasCv ? String(profile.cvPath).split("/").pop() : "";
+            cvCurrent.innerHTML = `
+                <span class="section-kicker">${hasCv ? "Document on file" : "CV missing"}</span>
+                <strong>${hasCv ? "Current CV uploaded and ready for review" : "Upload a CV to complete your application profile"}</strong>
+                <p>${window.UIKit.escapeHtml(hasCv ? cvFileName : "Module owners expect a current academic CV before reviewing your suitability.")}</p>
+                <span class="cv-status-meta">${window.UIKit.escapeHtml(hasCv ? profile.cvPath : "Accepted formats: PDF, DOC, DOCX up to 5MB")}</span>
+            `;
+            cvCurrent.classList.toggle("is-empty", !hasCv);
         };
 
         if (cvPickBtn && cvFileInput) {
@@ -271,14 +409,33 @@ window.PageModules.ta = window.PageModules.ta || {};
                 return;
             }
             const rows = result.data.jobs;
-            listEl.innerHTML = rows.map((job) => `
-                <article class="job-card">
+            if (!rows.length) {
+                renderEmptyState(
+                    listEl,
+                    "No roles match these filters",
+                    "Broaden the keyword, remove a filter, or review a different module to discover more openings."
+                );
+                window.UIKit.renderPagination(paginationEl, result.meta, load);
+                return;
+            }
+
+            listEl.innerHTML = rows.map((job) => {
+                const deadline = deadlineMeta(job.deadline);
+                const skills = parseSkills(job.requiredSkills);
+                return `
+                <article class="job-card job-card--${deadline.tone}">
                     <div class="job-card-head">
                         <div class="job-card-title-wrap">
-                            <span class="job-card-eyebrow">Job ${window.UIKit.escapeHtml(job.jobId)}</span>
+                            <div class="job-card-topline">
+                                <span class="job-card-eyebrow">Job ${window.UIKit.escapeHtml(job.jobId)}</span>
+                                <span class="job-hours-chip">${window.UIKit.escapeHtml(`${job.weeklyHours || "-"} hrs / week`)}</span>
+                            </div>
                             <h3>${window.UIKit.escapeHtml(job.title)}</h3>
                         </div>
-                        ${window.UIKit.badge(job.status)}
+                        <div class="job-card-status-group">
+                            ${window.UIKit.badge(job.status)}
+                            <span class="deadline-chip deadline-chip--${deadline.tone}">${window.UIKit.escapeHtml(deadline.label)}</span>
+                        </div>
                     </div>
                     <p class="job-card-description">${window.UIKit.escapeHtml(job.description)}</p>
                     <div class="job-meta-grid">
@@ -288,19 +445,24 @@ window.PageModules.ta = window.PageModules.ta || {};
                         </div>
                         <div class="job-meta-cell">
                             <span>Deadline</span>
-                            <strong>${window.UIKit.escapeHtml(job.deadline)}</strong>
+                            <strong>${window.UIKit.escapeHtml(deadline.detail)}</strong>
                         </div>
                         <div class="job-meta-cell">
                             <span>Required Skills</span>
-                            <strong>${window.UIKit.escapeHtml(job.requiredSkills)}</strong>
+                            <strong>${window.UIKit.escapeHtml(skills.length ? `${skills.length} skill areas` : "Not specified")}</strong>
                         </div>
+                    </div>
+                    <div class="skill-pill-list job-card-skills">
+                        ${skills.map((skill) => `<span class="skill-pill">${window.UIKit.escapeHtml(skill)}</span>`).join("")}
                     </div>
                     <div class="button-row job-card-actions">
                         <a class="glass-secondary-btn inline" href="${window.APP_CONTEXT}/pages/ta/job-detail?id=${window.UIKit.escapeHtml(job.jobId)}">View Details</a>
                         <button class="primary-btn" type="button" data-apply="${window.UIKit.escapeHtml(job.jobId)}">Quick Apply</button>
                     </div>
+                    <p class="job-card-helper">Review the full role brief first if you are comparing multiple modules with similar deadlines.</p>
                 </article>
-            `).join("");
+            `;
+            }).join("");
 
             listEl.querySelectorAll("[data-apply]").forEach((btn) => {
                 btn.addEventListener("click", () => {
@@ -352,6 +514,7 @@ window.PageModules.ta = window.PageModules.ta || {};
         const job = result.data.job;
         const card = document.getElementById("ta-job-detail-card");
         const skills = parseSkills(job.requiredSkills);
+        const deadline = deadlineMeta(job.deadline);
         const skillHtml = skills.length
             ? skills.map((skill) => `<span class="skill-pill">${window.UIKit.escapeHtml(skill)}</span>`).join("")
             : '<span class="muted">No required skills listed.</span>';
@@ -359,7 +522,10 @@ window.PageModules.ta = window.PageModules.ta || {};
             <div class="job-detail-layout">
                 <section class="job-detail-main">
                     <header class="job-detail-header">
-                        <span class="job-card-eyebrow">Job ${window.UIKit.escapeHtml(job.jobId)}</span>
+                        <div class="job-detail-topline">
+                            <span class="job-card-eyebrow">Job ${window.UIKit.escapeHtml(job.jobId)}</span>
+                            <span class="deadline-chip deadline-chip--${deadline.tone}">${window.UIKit.escapeHtml(deadline.label)}</span>
+                        </div>
                         <div class="job-detail-headline">
                             <h2>${window.UIKit.escapeHtml(job.title)}</h2>
                             ${window.UIKit.badge(job.status)}
@@ -369,7 +535,7 @@ window.PageModules.ta = window.PageModules.ta || {};
 
                     <section class="job-detail-section">
                         <h4>Role Summary</h4>
-                        <p class="muted">This role supports <strong>${window.UIKit.escapeHtml(job.moduleName)}</strong> and requires readiness before <strong>${window.UIKit.escapeHtml(job.deadline)}</strong>.</p>
+                        <p class="muted">This role supports <strong>${window.UIKit.escapeHtml(job.moduleName)}</strong> and requires application readiness before <strong>${window.UIKit.escapeHtml(deadline.detail)}</strong>.</p>
                     </section>
 
                     <section class="job-detail-section">
@@ -393,11 +559,15 @@ window.PageModules.ta = window.PageModules.ta || {};
                         </div>
                         <div class="detail-kv-item">
                             <span>Deadline</span>
-                            <strong>${window.UIKit.escapeHtml(job.deadline)}</strong>
+                            <strong>${window.UIKit.escapeHtml(deadline.detail)}</strong>
                         </div>
                         <div class="detail-kv-item">
                             <span>Status</span>
                             <strong>${window.UIKit.escapeHtml(job.status)}</strong>
+                        </div>
+                        <div class="detail-kv-item">
+                            <span>Workload</span>
+                            <strong>${window.UIKit.escapeHtml(`${job.weeklyHours || "-"} hrs / week`)}</strong>
                         </div>
                     </div>
                 </aside>
@@ -439,13 +609,41 @@ window.PageModules.ta = window.PageModules.ta || {};
                 return;
             }
             const rows = result.data.applications;
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state empty-state--table">
+                                <strong>No applications match this filter</strong>
+                                <p>Try removing one filter or search for a different module keyword.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
             tbody.innerHTML = rows.map((row) => `
                 <tr>
-                    <td>${window.UIKit.escapeHtml(row.applicationId)}</td>
-                    <td>${window.UIKit.escapeHtml(row.title)}</td>
-                    <td>${window.UIKit.escapeHtml(row.moduleName)}</td>
+                    <td>
+                        <div class="table-cell-primary">
+                            <strong>${window.UIKit.escapeHtml(row.applicationId)}</strong>
+                            <span class="table-meta">Updated ${window.UIKit.escapeHtml(formatShortDate(row.updatedAt))}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="table-cell-primary">
+                            <strong>${window.UIKit.escapeHtml(row.title)}</strong>
+                            <span class="table-meta">${window.UIKit.escapeHtml(applicationStatusContext(row.status, row.reviewNote))}</span>
+                        </div>
+                    </td>
+                    <td><span class="module-tag">${window.UIKit.escapeHtml(row.moduleName)}</span></td>
                     <td>${window.UIKit.badge(row.status)}</td>
-                    <td>${window.UIKit.escapeHtml(row.updatedAt)}</td>
+                    <td>
+                        <div class="table-cell-secondary">
+                            <strong>${window.UIKit.escapeHtml(formatShortDate(row.updatedAt))}</strong>
+                            <span class="table-meta">${window.UIKit.escapeHtml(String(row.status || "").toLowerCase() === "pending" ? "Still active" : "Decision recorded")}</span>
+                        </div>
+                    </td>
                 </tr>
             `).join("");
         };

@@ -25,6 +25,10 @@
         });
     }
 
+    function hasOpenCustomSelect() {
+        return !!document.querySelector(".glass-select.is-open");
+    }
+
     function updateSelectLabel(selectEl, trigger) {
         if (!selectEl || !trigger) return;
         const labelEl = trigger.querySelector(".glass-select-trigger-label");
@@ -155,12 +159,22 @@
         if (selectRuntimeReady) return;
         selectRuntimeReady = true;
 
+        let viewportCloseFrame = null;
+        const closeSelectsOnViewportShift = () => {
+            if (!hasOpenCustomSelect()) return;
+            if (viewportCloseFrame !== null) return;
+            viewportCloseFrame = window.requestAnimationFrame(() => {
+                viewportCloseFrame = null;
+                closeAllCustomSelects();
+            });
+        };
+
         document.addEventListener("click", (event) => {
             if (!event.target.closest(".glass-select")) closeAllCustomSelects();
         });
 
-        window.addEventListener("resize", () => closeAllCustomSelects());
-        window.addEventListener("scroll", () => closeAllCustomSelects());
+        window.addEventListener("resize", closeSelectsOnViewportShift, { passive: true });
+        window.addEventListener("scroll", closeSelectsOnViewportShift, { passive: true });
     }
 
     function refreshSelectComponents(scope = document) {
@@ -288,19 +302,43 @@
             };
 
             const activeItem = items.find((item) => item.classList.contains("active")) || items[0];
+            let navRect = null;
+            let pointerFrame = null;
+            let pointerX = 0;
+            let pointerY = 0;
+
+            const refreshNavRect = () => {
+                navRect = navRoot.getBoundingClientRect();
+            };
+
+            const syncPointerGlow = () => {
+                pointerFrame = null;
+                if (!navRect) refreshNavRect();
+                navRoot.style.setProperty("--x", `${pointerX - navRect.left}px`);
+                navRoot.style.setProperty("--y", `${pointerY - navRect.top}px`);
+            };
+
             moveTo(activeItem);
+            refreshNavRect();
 
             navRoot.addEventListener("mousemove", (event) => {
-                const rect = navRoot.getBoundingClientRect();
-                navRoot.style.setProperty("--x", `${event.clientX - rect.left}px`);
-                navRoot.style.setProperty("--y", `${event.clientY - rect.top}px`);
+                pointerX = event.clientX;
+                pointerY = event.clientY;
+                if (pointerFrame !== null) return;
+                pointerFrame = window.requestAnimationFrame(syncPointerGlow);
             });
 
             navRoot.addEventListener("mouseleave", () => {
+                if (pointerFrame !== null) {
+                    window.cancelAnimationFrame(pointerFrame);
+                    pointerFrame = null;
+                }
                 navRoot.style.setProperty("--x", "50%");
                 navRoot.style.setProperty("--y", "50%");
                 moveTo(activeItem);
             });
+
+            navRoot.addEventListener("mouseenter", refreshNavRect);
 
             items.forEach((item) => {
                 item.addEventListener("mouseenter", () => moveTo(item));
@@ -308,8 +346,13 @@
             });
 
             window.addEventListener("resize", () => {
+                refreshNavRect();
                 window.requestAnimationFrame(() => moveTo(activeItem));
-            });
+            }, { passive: true });
+
+            window.addEventListener("scroll", () => {
+                navRect = null;
+            }, { passive: true });
         });
     }
 
