@@ -1,0 +1,56 @@
+[ {
+  "jobId" : "JOB001",
+  "title" : "TA for Software Engineering",
+  "moduleName" : "EBU6304",
+  "requiredSkills" : "Java, OOP, Teamwork",
+  "deadline" : "2026-04-06",
+  "description" : "Support labs, assist marking, and host consultation sessions.",
+  "status" : "open",
+  "postedBy" : "MO001",
+  "weeklyHours" : 8,
+  "createdAt" : "2026-03-20"
+}, {
+  "jobId" : "JOB002",
+  "title" : "TA for Data Structures",
+  "moduleName" : "EBU6301",
+  "requiredSkills" : "Algorithms, Data Structures",
+  "deadline" : "2026-04-03",
+  "description" : "Assist with tutorials and assignment Q&A.",
+  "status" : "closing",
+  "postedBy" : "MO001",
+  "weeklyHours" : 6,
+  "createdAt" : "2026-03-19"
+}, {
+  "jobId" : "JOB003",
+  "title" : "TA for Database Systems",
+  "moduleName" : "EBU6305",
+  "requiredSkills" : "SQL, Database Design",
+  "deadline" : "2026-04-12",
+  "description" : "Guide students in database labs and review schema design.",
+  "status" : "open",
+  "postedBy" : "MO002",
+  "weeklyHours" : 7,
+  "createdAt" : "2026-03-21"
+}, {
+  "jobId" : "JOB004",
+  "title" : "TA for Computer Networks",
+  "moduleName" : "EBU6302",
+  "requiredSkills" : "Networking Protocols, Wireshark",
+  "deadline" : "2026-04-18",
+  "description" : "Support lab experiments and networking troubleshooting.",
+  "status" : "open",
+  "postedBy" : "MO002",
+  "weeklyHours" : 5,
+  "createdAt" : "2026-03-22"
+}, {
+  "jobId" : "JOB005",
+  "title" : "TA for Programming Fundamentals",
+  "moduleName" : "EBU5201",
+  "requiredSkills" : "Python Basics, Communication",
+  "deadline" : "2026-04-01",
+  "description" : "Help beginners with coding exercises and office hours.",
+  "status" : "closing",
+  "postedBy" : "MO001",
+  "weeklyHours" : 9,
+  "createdAt" : "2026-03-18"
+} ]
