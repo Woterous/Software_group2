@@ -1959,7 +1959,7 @@ a:hover {
     margin: 18px auto 12px;
     padding: 18px 22px;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 20px;
     position: sticky;
@@ -1981,11 +1981,6 @@ a:hover {
 .topbar-right {
     gap: 10px;
     justify-self: end;
-}
-
-.topbar-center {
-    display: flex;
-    justify-content: center;
 }
 
 .topbar-brand-copy {
@@ -2020,28 +2015,6 @@ a:hover {
 .brand-subtitle {
     color: var(--text-2);
     font-size: 0.84rem;
-}
-
-.topbar-context {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 42px;
-    padding: 0 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(211, 218, 210, 0.9);
-    background: rgba(252, 251, 247, 0.84);
-    color: var(--text-1);
-    font-size: 0.82rem;
-    font-weight: 700;
-}
-
-.topbar-context-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--accent);
-    box-shadow: 0 0 0 6px rgba(31, 106, 94, 0.08);
 }
 
 .role-pill {
@@ -2096,27 +2069,9 @@ a:hover {
         radial-gradient(circle at top, rgba(255, 255, 255, 0.45), transparent 48%);
 }
 
-.sidebar-heading-wrap {
-    margin: 0 8px 16px;
-    padding: 4px 4px 0;
-}
-
-.sidebar-heading {
-    margin: 0 0 6px;
-    color: var(--text-2);
-    font-size: 0.71rem;
-    letter-spacing: 0.14em;
-}
-
-.sidebar-summary {
-    color: var(--text-1);
-    font-size: 0.83rem;
-    line-height: 1.5;
-}
-
 .nav-segmented {
     gap: 12px;
-    padding: 8px;
+    padding: 6px 8px 8px;
     border: none;
     border-radius: 24px;
     background: transparent;
@@ -3300,11 +3255,7 @@ body.theme-soft .page-chip.active {
 
 @media (max-width: 1380px) {
     .topbar {
-        grid-template-columns: 1fr auto;
-    }
-
-    .topbar-center {
-        display: none;
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 
     .workspace {

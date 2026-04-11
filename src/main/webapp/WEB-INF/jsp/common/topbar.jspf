@@ -13,12 +13,6 @@
             <p class="brand-subtitle">A focused application workflow for teaching assistant hiring</p>
         </div>
     </div>
-    <div class="topbar-center">
-        <div class="topbar-context">
-            <span class="topbar-context-dot" aria-hidden="true"></span>
-            <span>Student-facing workspace with live application tracking</span>
-        </div>
-    </div>
     <nav class="topbar-right">
         <span class="role-pill role-pill--<%= topbarRole %>"><%= topbarRole.toUpperCase() %></span>
         <button class="ghost-btn topbar-action-btn" type="button" data-action="theme-toggle">Appearance</button>

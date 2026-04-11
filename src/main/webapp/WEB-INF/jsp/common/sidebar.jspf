@@ -23,10 +23,6 @@
     }
 %>
 <aside class="sidebar glass-panel <%= "public".equals(sidebarRole) ? "hidden" : "" %>">
-    <div class="sidebar-heading-wrap">
-        <div class="sidebar-heading">Workspace</div>
-        <p class="sidebar-summary">Structured around the actions you complete most often.</p>
-    </div>
     <nav class="nav-segmented" aria-label="Workspace sections">
         <span class="nav-indicator" aria-hidden="true"></span>
         <% for (String[] item : items) { %>
