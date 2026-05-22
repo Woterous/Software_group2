@@ -254,11 +254,23 @@ window.PageModules.public = window.PageModules.public || {};
     }
 
     function currentSession() {
-        try {
-            return JSON.parse(window.sessionStorage.getItem("tars.session.user") || "null");
-        } catch (_) {
+        return window.UIKit?.readStoredSession?.() || null;
+    }
+
+    async function validateExistingSession() {
+        const existing = currentSession();
+        if (!existing) return null;
+        if (!window.ApiClient?.authMe) return existing;
+
+        const result = await window.ApiClient.authMe();
+        const user = result.success ? result.data?.user : null;
+        if (!user) {
+            window.UIKit.clearStoredSession();
             return null;
         }
+
+        window.UIKit.storeSession(user);
+        return user;
     }
 
     function bindPasswordToggle(form, passwordInput, options) {
@@ -276,7 +288,7 @@ window.PageModules.public = window.PageModules.public || {};
     }
 
     async function initLogin() {
-        const existing = currentSession();
+        const existing = await validateExistingSession();
         if (existing) {
             window.UIKit.navigateWithTransition(window.UIKit.roleHome(existing.role));
             return;
@@ -302,7 +314,7 @@ window.PageModules.public = window.PageModules.public || {};
                 window.UIKit.toast(result.error.message, "error");
                 return;
             }
-            window.sessionStorage.setItem("tars.session.user", JSON.stringify(result.data.user));
+            window.UIKit.storeSession(result.data.user);
             window.UIKit.toast("Login successful.", "success");
             const role = result.data.user.role;
             setTimeout(() => {
@@ -312,7 +324,7 @@ window.PageModules.public = window.PageModules.public || {};
     }
 
     async function initRegister() {
-        const existing = currentSession();
+        const existing = await validateExistingSession();
         if (existing) {
             window.UIKit.navigateWithTransition(window.UIKit.roleHome(existing.role));
             return;

@@ -5,6 +5,8 @@
  * 初始化入口：UIKit.bindGlobalActions()，由 bootstrap.js 在所有页面启动时调用。
  */
 (function () {
+    const SESSION_KEY = "tars.session.user";
+    const AI_SESSION_PREFIX = "tars.ai.sessionId.";
     let selectRuntimeReady = false;
     const PAGE_CACHE_LIMIT = 8;
     const pageCache = new Map();
@@ -337,6 +339,46 @@
         if (role === "mo") return `${window.APP_CONTEXT}/pages/mo/dashboard`;
         if (role === "admin") return `${window.APP_CONTEXT}/pages/admin/dashboard`;
         return `${window.APP_CONTEXT}/pages/ta/dashboard`;
+    }
+
+    function readStoredSession() {
+        try {
+            return JSON.parse(window.sessionStorage.getItem(SESSION_KEY) || "null");
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function clearAiSessions() {
+        const keys = [];
+        for (let index = 0; index < window.sessionStorage.length; index += 1) {
+            const key = window.sessionStorage.key(index);
+            if (key) keys.push(key);
+        }
+        keys.forEach((key) => {
+            if (key === "tars.ai.sessionId" || key.startsWith(AI_SESSION_PREFIX)) {
+                window.sessionStorage.removeItem(key);
+            }
+        });
+    }
+
+    function storeSession(user) {
+        if (!user) return;
+        window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    }
+
+    function clearStoredSession() {
+        window.sessionStorage.removeItem(SESSION_KEY);
+        clearAiSessions();
+    }
+
+    function handleSessionExpired(message = "Session expired. Please log in again.") {
+        clearStoredSession();
+        if (message) toast(message, "warn");
+        const loginUrl = `${window.APP_CONTEXT}/pages/login`;
+        if (!window.location.pathname.endsWith("/pages/login")) {
+            navigateWithTransition(loginUrl);
+        }
     }
 
     function openModal({ title, message, confirmText = "Confirm", cancelText = "Cancel", tone = "primary", onConfirm } = {}) {
@@ -706,24 +748,40 @@
                     btn.disabled = false;
                     return;
                 }
-                window.sessionStorage.removeItem("tars.session.user");
+                clearStoredSession();
                 navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             });
         });
     }
 
     function ensureSessionOrRedirect(allowedRoles) {
-        let session = null;
-        try {
-            session = JSON.parse(window.sessionStorage.getItem("tars.session.user") || "null");
-        } catch (_) {
-            session = null;
-        }
+        const session = readStoredSession();
         if (!session || (allowedRoles && !allowedRoles.includes(session.role))) {
             navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             return null;
         }
         return session;
+    }
+
+    async function ensureServerSessionOrRedirect(allowedRoles) {
+        const session = ensureSessionOrRedirect(allowedRoles);
+        if (!session) return null;
+        if (!window.ApiClient?.authMe) return session;
+
+        const result = await window.ApiClient.authMe();
+        if (!result.success) {
+            handleSessionExpired();
+            return null;
+        }
+
+        const user = result.data?.user;
+        if (!user || (allowedRoles && !allowedRoles.includes(user.role))) {
+            handleSessionExpired("Please sign in with an authorized account.");
+            return null;
+        }
+
+        storeSession(user);
+        return user;
     }
 
     window.UIKit = {
@@ -740,6 +798,11 @@
         bindGlobalActions,
         navigateWithTransition,
         ensureSessionOrRedirect,
+        ensureServerSessionOrRedirect,
+        handleSessionExpired,
+        readStoredSession,
+        storeSession,
+        clearStoredSession,
         escapeHtml,
         refreshSelectComponents,
         renderAiStructuredView

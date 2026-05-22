@@ -27,7 +27,7 @@ window.PageModules = window.PageModules || {};
         }
     }
 
-    function boot() {
+    async function boot() {
         window.UIKit.bindGlobalActions();
         let role = document.body.dataset.role || "";
         let page = document.body.dataset.page || "";
@@ -36,6 +36,12 @@ window.PageModules = window.PageModules || {};
             role = derived.role;
             page = derived.page;
         }
+
+        if (role !== "public") {
+            const session = await window.UIKit.ensureServerSessionOrRedirect([role]);
+            if (!session) return;
+        }
+
         initPage(role, page);
     }
 

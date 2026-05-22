@@ -22,6 +22,25 @@
     window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
     let activeSessionId = window.sessionStorage.getItem(sessionKey()) || "";
 
+    function clearActiveAiSession() {
+        activeSessionId = "";
+        window.sessionStorage.removeItem(sessionKey());
+    }
+
+    function isAuthError(result) {
+        return result?.error?.code === "AUTH_NOT_LOGIN" || result?.error?.code === "HTTP_401";
+    }
+
+    function handleAuthError(messagesEl) {
+        clearActiveAiSession();
+        if (messagesEl) {
+            appendMessage(messagesEl, "assistant error", "Your session has expired. Please log in again.");
+        }
+        if (typeof window.UIKit?.handleSessionExpired === "function") {
+            window.UIKit.handleSessionExpired("Session expired. Please log in again.");
+        }
+    }
+
     function pageContext() {
         return document.body.dataset.page || window.location.pathname;
     }
@@ -227,7 +246,10 @@
 
     async function loadConversations(messagesEl, listEl) {
         const result = await window.ApiClient.aiConversations();
-        if (!result.success) return;
+        if (!result.success) {
+            if (isAuthError(result)) handleAuthError(messagesEl);
+            return;
+        }
         const conversations = result.data.conversations || [];
         if (listEl) {
             listEl.innerHTML = conversations.map((item) => `
@@ -261,9 +283,12 @@
             renderPersistedMessages(messagesEl, result.data.conversation);
             return;
         }
+        if (isAuthError(result)) {
+            handleAuthError(messagesEl);
+            return;
+        }
         if (result.error?.code === "AI_SESSION_FORBIDDEN") {
-            activeSessionId = "";
-            window.sessionStorage.removeItem(sessionKey());
+            clearActiveAiSession();
             renderPersistedMessages(messagesEl, { messages: [] });
         }
     }
@@ -348,6 +373,10 @@
             button.disabled = false;
         }
         if (!result.success) {
+            if (isAuthError(result)) {
+                handleAuthError(document.getElementById("global-ai-messages"));
+                return;
+            }
             window.UIKit.toast(result.error?.message || "AI action failed.", "error");
             return;
         }
@@ -469,9 +498,12 @@
             loading?.remove();
 
             if (!result.success) {
+                if (isAuthError(result)) {
+                    handleAuthError(messages);
+                    return;
+                }
                 if (result.error?.code === "AI_SESSION_FORBIDDEN") {
-                    activeSessionId = "";
-                    window.sessionStorage.removeItem(sessionKey());
+                    clearActiveAiSession();
                 }
                 appendMessage(messages, "assistant error", result.error?.message || "AI request failed.");
                 return;
