@@ -268,6 +268,61 @@
         }
     }
 
+    function actionConfirmation(action) {
+        const payload = action?.payload || {};
+        const label = action?.label || action?.type || "Action";
+        const type = action?.type || "";
+        if (type === "MO_SELECT_APPLICATION") {
+            return {
+                title: "Select TA",
+                message: `Confirm selecting application ${payload.applicationId || ""}? The dashboard and review data will refresh after the decision is saved.`,
+                confirmText: "Select TA",
+                tone: "primary"
+            };
+        }
+        if (type === "MO_REJECT_APPLICATION") {
+            return {
+                title: "Reject Application",
+                message: `Confirm rejecting application ${payload.applicationId || ""}? The dashboard and review data will refresh after the decision is saved.`,
+                confirmText: "Reject",
+                tone: "danger"
+            };
+        }
+        if (type === "TA_APPLY_JOB") {
+            return {
+                title: "Submit Application",
+                message: `Submit your application${payload.title ? ` for ${payload.title}` : ""}?`,
+                confirmText: "Apply",
+                tone: "primary"
+            };
+        }
+        return {
+            title: "Confirm AI Action",
+            message: `Run action: ${label}?`,
+            confirmText: label,
+            tone: action?.tone === "danger" ? "danger" : "primary"
+        };
+    }
+
+    async function confirmAction(action) {
+        if (!action?.requiresConfirmation) return true;
+        const options = actionConfirmation(action);
+        if (typeof window.UIKit?.openModal === "function") {
+            return window.UIKit.openModal(options);
+        }
+        return false;
+    }
+
+    function notifyActionCompleted(action, resultData) {
+        document.dispatchEvent(new CustomEvent("tars:ai-action-completed", {
+            detail: {
+                type: action?.type || "",
+                payload: action?.payload || {},
+                result: resultData || {}
+            }
+        }));
+    }
+
     async function executeAction(action, button) {
         const payload = action?.payload || {};
         if (action?.type === "NAVIGATE") {
@@ -278,20 +333,25 @@
             await window.ApiClient.openCvFile(payload.cvPath);
             return;
         }
-        if (action?.requiresConfirmation && !window.confirm(`Run action: ${action.label || action.type}?`)) {
+        if (!(await confirmAction(action))) {
             return;
         }
         button.disabled = true;
-        const result = await window.ApiClient.aiExecuteAction({
-            sessionId: activeSessionId,
-            type: action.type,
-            payload
-        });
-        button.disabled = false;
+        let result;
+        try {
+            result = await window.ApiClient.aiExecuteAction({
+                sessionId: activeSessionId,
+                type: action.type,
+                payload
+            });
+        } finally {
+            button.disabled = false;
+        }
         if (!result.success) {
             window.UIKit.toast(result.error?.message || "AI action failed.", "error");
             return;
         }
+        notifyActionCompleted(action, result.data);
         window.UIKit.toast(result.data?.message || "Action completed.", "success");
         const messages = document.getElementById("global-ai-messages");
         if (messages) appendMessage(messages, "assistant", result.data?.message || "Action completed.", "Action result");

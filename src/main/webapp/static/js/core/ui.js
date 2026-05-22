@@ -339,32 +339,68 @@
         return `${window.APP_CONTEXT}/pages/ta/dashboard`;
     }
 
-    function openModal({ title, message, onConfirm }) {
+    function openModal({ title, message, confirmText = "Confirm", cancelText = "Cancel", tone = "primary", onConfirm } = {}) {
         const root = byId("modal-root");
-        if (!root) return;
-        byId("modal-title").textContent = title || "Confirm";
-        byId("modal-message").textContent = message || "Please confirm this action.";
-        root.classList.remove("hidden");
-
-        const close = () => {
-            root.classList.add("hidden");
-            confirmBtn.removeEventListener("click", confirmHandler);
-            cancelBtn.removeEventListener("click", close);
-            backdrop.removeEventListener("click", close);
-        };
-
-        const confirmHandler = () => {
-            close();
+        if (!root) {
             if (typeof onConfirm === "function") onConfirm();
-        };
-
+            return Promise.resolve(true);
+        }
+        const titleEl = byId("modal-title");
+        const messageEl = byId("modal-message");
         const confirmBtn = root.querySelector('[data-action="modal-confirm"]');
         const cancelBtn = root.querySelector('[data-action="modal-cancel"]');
         const backdrop = root.querySelector('[data-action="modal-close"]');
+        if (!titleEl || !messageEl || !confirmBtn || !cancelBtn || !backdrop) {
+            if (typeof onConfirm === "function") onConfirm();
+            return Promise.resolve(true);
+        }
 
-        confirmBtn.addEventListener("click", confirmHandler);
-        cancelBtn.addEventListener("click", close);
-        backdrop.addEventListener("click", close);
+        const previousConfirmText = confirmBtn.textContent;
+        const previousCancelText = cancelBtn.textContent;
+        const previousConfirmClass = confirmBtn.className;
+        titleEl.textContent = title || "Confirm";
+        messageEl.textContent = message || "Please confirm this action.";
+        confirmBtn.textContent = confirmText || "Confirm";
+        cancelBtn.textContent = cancelText || "Cancel";
+        confirmBtn.className = tone === "danger" ? "danger-btn" : "primary-btn";
+        root.classList.remove("hidden");
+
+        return new Promise((resolve) => {
+            let settled = false;
+
+            const close = (confirmed) => {
+                if (settled) return;
+                settled = true;
+                root.classList.add("hidden");
+                confirmBtn.textContent = previousConfirmText;
+                cancelBtn.textContent = previousCancelText;
+                confirmBtn.className = previousConfirmClass;
+                confirmBtn.removeEventListener("click", confirmHandler);
+                cancelBtn.removeEventListener("click", cancelHandler);
+                backdrop.removeEventListener("click", cancelHandler);
+                document.removeEventListener("keydown", keyHandler);
+                resolve(confirmed);
+            };
+
+            const confirmHandler = () => {
+                close(true);
+                if (typeof onConfirm === "function") onConfirm();
+            };
+
+            const cancelHandler = () => close(false);
+
+            const keyHandler = (event) => {
+                if (event.key === "Escape") {
+                    close(false);
+                }
+            };
+
+            confirmBtn.addEventListener("click", confirmHandler);
+            cancelBtn.addEventListener("click", cancelHandler);
+            backdrop.addEventListener("click", cancelHandler);
+            document.addEventListener("keydown", keyHandler);
+            confirmBtn.focus();
+        });
     }
 
     function initSidebarSegmentedNav() {

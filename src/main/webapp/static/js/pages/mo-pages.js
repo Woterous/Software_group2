@@ -20,6 +20,22 @@ window.PageModules.mo = window.PageModules.mo || {};
         container.innerHTML = rows.map(renderItem).join("");
     }
 
+    function bindAiActionRefresh(key, role, page, actionTypes, handler) {
+        window.__tarsAiActionRefreshHandlers = window.__tarsAiActionRefreshHandlers || {};
+        const previous = window.__tarsAiActionRefreshHandlers[key];
+        if (previous) {
+            document.removeEventListener("tars:ai-action-completed", previous);
+        }
+
+        const listener = (event) => {
+            if (document.body.dataset.role !== role || document.body.dataset.page !== page) return;
+            if (!actionTypes.includes(event.detail?.type)) return;
+            handler(event);
+        };
+        window.__tarsAiActionRefreshHandlers[key] = listener;
+        document.addEventListener("tars:ai-action-completed", listener);
+    }
+
     function bindCvPreviewButtons(scope) {
         if (!scope) return;
         scope.querySelectorAll("[data-cv-path]").forEach((btn) => {
@@ -61,27 +77,32 @@ window.PageModules.mo = window.PageModules.mo || {};
         const session = requireSession();
         if (!session) return;
 
-        const result = await window.ApiClient.moDashboard();
-        if (!result.success) {
-            window.UIKit.toast(result.error.message, "error");
-            return;
-        }
+        const load = async () => {
+            const result = await window.ApiClient.moDashboard();
+            if (!result.success) {
+                window.UIKit.toast(result.error.message, "error");
+                return;
+            }
 
-        document.getElementById("mo-active-jobs").textContent = result.data.activeJobs;
-        document.getElementById("mo-total-applicants").textContent = result.data.totalApplicants;
-        document.getElementById("mo-pending-review").textContent = result.data.pendingReview;
-        document.getElementById("mo-selected-count").textContent = result.data.selectedCount;
+            document.getElementById("mo-active-jobs").textContent = result.data.activeJobs;
+            document.getElementById("mo-total-applicants").textContent = result.data.totalApplicants;
+            document.getElementById("mo-pending-review").textContent = result.data.pendingReview;
+            document.getElementById("mo-selected-count").textContent = result.data.selectedCount;
 
-        renderStack(document.getElementById("mo-near-deadline"), result.data.nearDeadline, (job) => `
-            <div class="stack-item">
-                <strong>${window.UIKit.escapeHtml(job.title)}</strong>
-                <div class="job-meta">
-                    <span>${window.UIKit.escapeHtml(job.moduleName)}</span>
-                    <span>${window.UIKit.escapeHtml(job.deadline)}</span>
-                    <span>${window.UIKit.badge(job.status)}</span>
+            renderStack(document.getElementById("mo-near-deadline"), result.data.nearDeadline, (job) => `
+                <div class="stack-item">
+                    <strong>${window.UIKit.escapeHtml(job.title)}</strong>
+                    <div class="job-meta">
+                        <span>${window.UIKit.escapeHtml(job.moduleName)}</span>
+                        <span>${window.UIKit.escapeHtml(job.deadline)}</span>
+                        <span>${window.UIKit.badge(job.status)}</span>
+                    </div>
                 </div>
-            </div>
-        `);
+            `);
+        };
+
+        bindAiActionRefresh("mo-dashboard", "mo", "dashboard", ["MO_SELECT_APPLICATION", "MO_REJECT_APPLICATION"], load);
+        await load();
     }
 
     async function initJobs() {

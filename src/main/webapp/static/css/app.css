@@ -1875,9 +1875,10 @@ button:active {
 .modal-root {
     position: fixed;
     inset: 0;
-    z-index: 110;
+    z-index: 140;
     display: grid;
     place-items: center;
+    padding: 18px;
 }
 
 .modal-backdrop {
@@ -1889,7 +1890,7 @@ button:active {
 
 .modal-card {
     position: relative;
-    width: 420px;
+    width: min(420px, 100%);
     padding: 20px;
     z-index: 2;
     animation: popIn var(--t-mid) var(--ease-smooth);
@@ -1912,6 +1913,7 @@ button:active {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .reveal-up {
