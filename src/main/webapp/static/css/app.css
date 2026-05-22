@@ -2433,6 +2433,20 @@ a:hover {
     transform: translateX(2px);
 }
 
+.nav-item--disabled,
+.nav-item--disabled:hover {
+    cursor: not-allowed;
+    color: rgba(84, 96, 90, 0.42);
+    background: rgba(238, 242, 236, 0.54);
+    border: 1px dashed rgba(174, 186, 178, 0.78);
+    box-shadow: none;
+    transform: none;
+}
+
+.nav-item--disabled .nav-item-hint {
+    color: rgba(104, 114, 108, 0.5);
+}
+
 .nav-item.active {
     color: var(--accent-strong);
     text-shadow: none;

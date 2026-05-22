@@ -259,6 +259,38 @@ window.PageModules.mo = window.PageModules.mo || {};
         if (!session) return;
 
         const appId = window.UIKit.getQuery("appId") || "";
+        if (!appId) {
+            const candidateEl = document.getElementById("mo-review-candidate");
+            const skillEl = document.getElementById("mo-skill-match");
+            const aiOutput = document.getElementById("mo-ai-summary");
+            const noteEl = document.getElementById("mo-review-note");
+            const selectBtn = document.getElementById("mo-select-btn");
+            const rejectBtn = document.getElementById("mo-reject-btn");
+            const aiBtn = document.getElementById("mo-ai-summary-btn");
+            if (candidateEl) {
+                candidateEl.innerHTML = `
+                    <div class="empty-state">
+                        <strong>Select a candidate first</strong>
+                        <p>Open Applicants and choose a candidate to review before using the decision workflow.</p>
+                    </div>
+                `;
+            }
+            if (skillEl) {
+                skillEl.innerHTML = '<div class="stack-item muted">No candidate selected.</div>';
+            }
+            if (aiOutput) {
+                aiOutput.innerHTML = "";
+            }
+            if (noteEl) {
+                noteEl.value = "";
+                noteEl.disabled = true;
+            }
+            [selectBtn, rejectBtn, aiBtn].forEach((btn) => {
+                if (btn) btn.disabled = true;
+            });
+            return;
+        }
+
         const result = await window.ApiClient.moReview(appId);
         if (!result.success) {
             window.UIKit.toast(result.error.message, "error");

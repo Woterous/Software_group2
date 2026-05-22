@@ -1197,7 +1197,7 @@ public class AiAssistantServiceImpl implements AiAssistantService {
             if (!pending.isEmpty()) {
                 String applicationId = asString(pending.get(0).get("applicationId"));
                 return List.of(action("NAVIGATE", "Open next review", Map.of(
-                    "url", "/pages/mo/review?id=" + applicationId,
+                    "url", "/pages/mo/review?appId=" + applicationId,
                     "applicationId", applicationId
                 ), false, "secondary"));
             }

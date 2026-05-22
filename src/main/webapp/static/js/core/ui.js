@@ -409,7 +409,7 @@
             navRoot.dataset.segmentedReady = "1";
 
             const indicator = navRoot.querySelector(".nav-indicator");
-            const items = Array.from(navRoot.querySelectorAll(".nav-item"));
+            const items = Array.from(navRoot.querySelectorAll(".nav-item:not(.nav-item--disabled)"));
             if (!indicator || !items.length) return;
 
             const moveTo = (item) => {

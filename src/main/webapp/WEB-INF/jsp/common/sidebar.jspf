@@ -3,6 +3,11 @@
     String sidebarPageKey = (String) request.getAttribute("appPage");
     if (sidebarRole == null) sidebarRole = "public";
     if (sidebarPageKey == null) sidebarPageKey = "";
+    String reviewAppId = request.getParameter("appId");
+    if ((reviewAppId == null || reviewAppId.isBlank())) {
+        reviewAppId = request.getParameter("id");
+    }
+    boolean hasReviewCandidate = reviewAppId != null && !reviewAppId.isBlank();
 
     java.util.List<String[]> items = new java.util.ArrayList<>();
     if ("ta".equals(sidebarRole)) {
@@ -26,10 +31,25 @@
     <nav class="nav-segmented" aria-label="Workspace sections">
         <span class="nav-indicator" aria-hidden="true"></span>
         <% for (String[] item : items) { %>
-        <a class="nav-item <%= item[0].equals(sidebarPageKey) ? "active" : "" %>" href="${pageContext.request.contextPath}<%= item[2] %>">
+        <%
+            boolean reviewDisabled = "mo".equals(sidebarRole) && "review".equals(item[0]) && !hasReviewCandidate;
+            boolean active = item[0].equals(sidebarPageKey) && !reviewDisabled;
+            String href = item[2];
+            if ("mo".equals(sidebarRole) && "review".equals(item[0]) && hasReviewCandidate) {
+                href = "/pages/mo/review?appId=" + java.net.URLEncoder.encode(reviewAppId, java.nio.charset.StandardCharsets.UTF_8);
+            }
+        %>
+        <% if (reviewDisabled) { %>
+        <span class="nav-item nav-item--disabled" aria-disabled="true" title="Select a candidate from Applicants before opening Review Center.">
+            <span class="nav-item-label"><%= item[1] %></span>
+            <span class="nav-item-hint"><%= item[3] %></span>
+        </span>
+        <% } else { %>
+        <a class="nav-item <%= active ? "active" : "" %>" href="${pageContext.request.contextPath}<%= href %>">
             <span class="nav-item-label"><%= item[1] %></span>
             <span class="nav-item-hint"><%= item[3] %></span>
         </a>
+        <% } %>
         <% } %>
     </nav>
 </aside>
