@@ -289,7 +289,7 @@ window.PageModules.ta = window.PageModules.ta || {};
                 <span class="section-kicker">${hasCv ? "Document on file" : "CV missing"}</span>
                 <strong>${hasCv ? "Current CV uploaded and ready for review" : "Upload a CV to complete your application profile"}</strong>
                 <p>${window.UIKit.escapeHtml(hasCv ? cvFileName : "Module owners expect a current academic CV before reviewing your suitability.")}</p>
-                <span class="cv-status-meta">${window.UIKit.escapeHtml(hasCv ? profile.cvPath : "Accepted formats: PDF, DOC, DOCX up to 5MB")}</span>
+                <span class="cv-status-meta">${window.UIKit.escapeHtml(hasCv ? "Stored securely for module owner review" : "Accepted formats: PDF, DOC, DOCX up to 5MB")}</span>
                 ${hasCv && cvUrl ? `<button class="glass-secondary-btn inline cv-view-link" type="button" data-cv-path="${window.UIKit.escapeHtml(profile.cvPath)}">View CV</button>` : ""}
             `;
             const viewCvBtn = cvCurrent.querySelector("[data-cv-path]");
