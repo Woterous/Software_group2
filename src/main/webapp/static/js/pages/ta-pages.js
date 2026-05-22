@@ -289,7 +289,7 @@ window.PageModules.ta = window.PageModules.ta || {};
                 <span class="section-kicker">${hasCv ? "Document on file" : "CV missing"}</span>
                 <strong>${hasCv ? "Current CV uploaded and ready for review" : "Upload a CV to complete your application profile"}</strong>
                 <p>${window.UIKit.escapeHtml(hasCv ? cvFileName : "Module owners expect a current academic CV before reviewing your suitability.")}</p>
-                <span class="cv-status-meta">${window.UIKit.escapeHtml(hasCv ? profile.cvPath : "Accepted formats: PDF, DOC, DOCX up to 5MB")}</span>
+                <span class="cv-status-meta">${window.UIKit.escapeHtml(hasCv ? "Stored securely for module owner review" : "Accepted formats: PDF, DOC, DOCX up to 5MB")}</span>
                 ${hasCv && cvUrl ? `<button class="glass-secondary-btn inline cv-view-link" type="button" data-cv-path="${window.UIKit.escapeHtml(profile.cvPath)}">View CV</button>` : ""}
             `;
             const viewCvBtn = cvCurrent.querySelector("[data-cv-path]");
@@ -472,7 +472,7 @@ window.PageModules.ta = window.PageModules.ta || {};
                     ? renderModelView(data.modelView, provider)
                     : `<div class="ai-provider-note"><span>${window.UIKit.escapeHtml(provider.mode || "tool-only")}</span><p>${window.UIKit.escapeHtml(assistantText)}</p></div>`}
                 ${rows.map((row) => `
-                    <article class="ai-result-card">
+                    <article class="ai-result-card" data-actions="${encodeURIComponent(JSON.stringify(row.actions || []))}">
                         <div class="ai-result-head">
                             <div>
                                 <span class="section-kicker">${window.UIKit.escapeHtml(row.moduleName || "-")}</span>
@@ -485,22 +485,30 @@ window.PageModules.ta = window.PageModules.ta || {};
                             ${(row.matchedSkills || []).map((skill) => `<span class="skill-pill">${window.UIKit.escapeHtml(skill)}</span>`).join("")}
                             ${row.alreadyApplied ? '<span class="badge pending">already applied</span>' : ""}
                         </div>
+                        ${window.AiAssistant?.renderActions ? window.AiAssistant.renderActions(row.actions || []) : ""}
                         <a class="text-link" href="${window.APP_CONTEXT}/pages/ta/job-detail?id=${window.UIKit.escapeHtml(row.jobId)}">Open role detail</a>
                     </article>
                 `).join("")}
             `;
+            window.AiAssistant?.bindActionButtons(aiOutput);
         };
 
         if (aiBtn && aiOutput) {
             aiBtn.addEventListener("click", async () => {
                 aiBtn.disabled = true;
                 aiOutput.innerHTML = '<div class="ai-loading-card">Generating profile-based matches...</div>';
-                const result = await window.ApiClient.aiTaJobRecommendations();
+                const result = await window.ApiClient.aiTaJobRecommendations({
+                    sessionId: window.AiAssistant?.getSessionId?.() || "",
+                    page: "ta/jobs"
+                });
                 aiBtn.disabled = false;
                 if (!result.success) {
                     window.UIKit.toast(result.error.message, "error");
                     aiOutput.innerHTML = "";
                     return;
+                }
+                if (result.data?.sessionId) {
+                    window.AiAssistant?.setSessionId?.(result.data.sessionId);
                 }
                 renderAiRecommendations(result.data);
             });
@@ -602,6 +610,8 @@ window.PageModules.ta = window.PageModules.ta || {};
             event.preventDefault();
             load(1);
         });
+        form.module.addEventListener("change", () => load(1));
+        form.status.addEventListener("change", () => load(1));
 
         await load(1);
     }
@@ -764,6 +774,7 @@ window.PageModules.ta = window.PageModules.ta || {};
             event.preventDefault();
             load();
         });
+        form.status.addEventListener("change", load);
 
         await load();
     }

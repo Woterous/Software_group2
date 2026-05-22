@@ -185,17 +185,30 @@
         async aiStatus() {
             return fetchJson("/ai/status", { method: "GET" });
         },
-        async aiTaJobRecommendations() {
-            return fetchJson("/ai/ta/job-recommendations", { method: "POST", body: JSON.stringify({}) });
+        async aiTaJobRecommendations(payload = {}) {
+            return fetchJson("/ai/ta/job-recommendations", { method: "POST", body: JSON.stringify(payload) });
         },
-        async aiMoCandidateSummary(applicationId) {
-            return fetchJson("/ai/mo/candidate-summary", { method: "POST", body: JSON.stringify({ applicationId }) });
+        async aiMoCandidateSummary(applicationId, payload = {}) {
+            return fetchJson("/ai/mo/candidate-summary", { method: "POST", body: JSON.stringify({ ...payload, applicationId }) });
         },
         async aiAdminRiskAnalysis(payload = {}) {
             return fetchJson("/ai/admin/risk-analysis", { method: "POST", body: JSON.stringify(payload) });
         },
         async aiChat(payload = {}) {
             return fetchJson("/ai/chat", { method: "POST", body: JSON.stringify(payload) });
+        },
+        async aiConversations() {
+            return fetchJson("/ai/conversations", { method: "GET" });
+        },
+        async aiConversation(sessionId) {
+            return fetchJson(`/ai/conversations/${encodeURIComponent(sessionId)}`, { method: "GET" });
+        },
+        async aiLatestArtifact(type, scopeKey = "") {
+            const query = new URLSearchParams({ type, scopeKey }).toString();
+            return fetchJson(`/ai/artifacts/latest?${query}`, { method: "GET" });
+        },
+        async aiExecuteAction(payload = {}) {
+            return fetchJson("/ai/action/execute", { method: "POST", body: JSON.stringify(payload) });
         },
 
         async adminDashboard() {

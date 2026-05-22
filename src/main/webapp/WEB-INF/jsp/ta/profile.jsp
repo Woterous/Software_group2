@@ -26,7 +26,6 @@
                         <span class="section-kicker">Account details</span>
                         <h3>Profile Management</h3>
                     </div>
-                    <span class="muted">US-TA-003 / US-TA-004</span>
                 </div>
                 <p class="panel-description">Use concise, role-relevant language so your profile reads like a serious academic application rather than a rough draft.</p>
                 <form id="ta-profile-form" class="form-grid-two form-grid-two--profile">

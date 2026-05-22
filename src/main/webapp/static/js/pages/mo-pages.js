@@ -20,6 +20,22 @@ window.PageModules.mo = window.PageModules.mo || {};
         container.innerHTML = rows.map(renderItem).join("");
     }
 
+    function bindAiActionRefresh(key, role, page, actionTypes, handler) {
+        window.__tarsAiActionRefreshHandlers = window.__tarsAiActionRefreshHandlers || {};
+        const previous = window.__tarsAiActionRefreshHandlers[key];
+        if (previous) {
+            document.removeEventListener("tars:ai-action-completed", previous);
+        }
+
+        const listener = (event) => {
+            if (document.body.dataset.role !== role || document.body.dataset.page !== page) return;
+            if (!actionTypes.includes(event.detail?.type)) return;
+            handler(event);
+        };
+        window.__tarsAiActionRefreshHandlers[key] = listener;
+        document.addEventListener("tars:ai-action-completed", listener);
+    }
+
     function bindCvPreviewButtons(scope) {
         if (!scope) return;
         scope.querySelectorAll("[data-cv-path]").forEach((btn) => {
@@ -61,27 +77,32 @@ window.PageModules.mo = window.PageModules.mo || {};
         const session = requireSession();
         if (!session) return;
 
-        const result = await window.ApiClient.moDashboard();
-        if (!result.success) {
-            window.UIKit.toast(result.error.message, "error");
-            return;
-        }
+        const load = async () => {
+            const result = await window.ApiClient.moDashboard();
+            if (!result.success) {
+                window.UIKit.toast(result.error.message, "error");
+                return;
+            }
 
-        document.getElementById("mo-active-jobs").textContent = result.data.activeJobs;
-        document.getElementById("mo-total-applicants").textContent = result.data.totalApplicants;
-        document.getElementById("mo-pending-review").textContent = result.data.pendingReview;
-        document.getElementById("mo-selected-count").textContent = result.data.selectedCount;
+            document.getElementById("mo-active-jobs").textContent = result.data.activeJobs;
+            document.getElementById("mo-total-applicants").textContent = result.data.totalApplicants;
+            document.getElementById("mo-pending-review").textContent = result.data.pendingReview;
+            document.getElementById("mo-selected-count").textContent = result.data.selectedCount;
 
-        renderStack(document.getElementById("mo-near-deadline"), result.data.nearDeadline, (job) => `
-            <div class="stack-item">
-                <strong>${window.UIKit.escapeHtml(job.title)}</strong>
-                <div class="job-meta">
-                    <span>${window.UIKit.escapeHtml(job.moduleName)}</span>
-                    <span>${window.UIKit.escapeHtml(job.deadline)}</span>
-                    <span>${window.UIKit.badge(job.status)}</span>
+            renderStack(document.getElementById("mo-near-deadline"), result.data.nearDeadline, (job) => `
+                <div class="stack-item">
+                    <strong>${window.UIKit.escapeHtml(job.title)}</strong>
+                    <div class="job-meta">
+                        <span>${window.UIKit.escapeHtml(job.moduleName)}</span>
+                        <span>${window.UIKit.escapeHtml(job.deadline)}</span>
+                        <span>${window.UIKit.badge(job.status)}</span>
+                    </div>
                 </div>
-            </div>
-        `);
+            `);
+        };
+
+        bindAiActionRefresh("mo-dashboard", "mo", "dashboard", ["MO_SELECT_APPLICATION", "MO_REJECT_APPLICATION"], load);
+        await load();
     }
 
     async function initJobs() {
@@ -158,6 +179,7 @@ window.PageModules.mo = window.PageModules.mo || {};
             event.preventDefault();
             load();
         });
+        filterForm.status.addEventListener("change", load);
 
         jobForm.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -229,6 +251,8 @@ window.PageModules.mo = window.PageModules.mo || {};
             event.preventDefault();
             load();
         });
+        form.jobId.addEventListener("change", load);
+        form.status.addEventListener("change", load);
 
         await load();
     }
@@ -238,6 +262,38 @@ window.PageModules.mo = window.PageModules.mo || {};
         if (!session) return;
 
         const appId = window.UIKit.getQuery("appId") || "";
+        if (!appId) {
+            const candidateEl = document.getElementById("mo-review-candidate");
+            const skillEl = document.getElementById("mo-skill-match");
+            const aiOutput = document.getElementById("mo-ai-summary");
+            const noteEl = document.getElementById("mo-review-note");
+            const selectBtn = document.getElementById("mo-select-btn");
+            const rejectBtn = document.getElementById("mo-reject-btn");
+            const aiBtn = document.getElementById("mo-ai-summary-btn");
+            if (candidateEl) {
+                candidateEl.innerHTML = `
+                    <div class="empty-state">
+                        <strong>Select a candidate first</strong>
+                        <p>Open Applicants and choose a candidate to review before using the decision workflow.</p>
+                    </div>
+                `;
+            }
+            if (skillEl) {
+                skillEl.innerHTML = '<div class="stack-item muted">No candidate selected.</div>';
+            }
+            if (aiOutput) {
+                aiOutput.innerHTML = "";
+            }
+            if (noteEl) {
+                noteEl.value = "";
+                noteEl.disabled = true;
+            }
+            [selectBtn, rejectBtn, aiBtn].forEach((btn) => {
+                if (btn) btn.disabled = true;
+            });
+            return;
+        }
+
         const result = await window.ApiClient.moReview(appId);
         if (!result.success) {
             window.UIKit.toast(result.error.message, "error");
@@ -279,7 +335,10 @@ window.PageModules.mo = window.PageModules.mo || {};
             aiBtn.addEventListener("click", async () => {
                 aiBtn.disabled = true;
                 aiOutput.innerHTML = '<div class="ai-loading-card">Generating candidate review summary...</div>';
-                const summaryResult = await window.ApiClient.aiMoCandidateSummary(app.applicationId);
+                const summaryResult = await window.ApiClient.aiMoCandidateSummary(app.applicationId, {
+                    sessionId: window.AiAssistant?.getSessionId?.() || "",
+                    page: "mo/review"
+                });
                 aiBtn.disabled = false;
                 if (!summaryResult.success) {
                     window.UIKit.toast(summaryResult.error.message, "error");
@@ -287,9 +346,14 @@ window.PageModules.mo = window.PageModules.mo || {};
                     return;
                 }
                 const data = summaryResult.data;
+                if (data?.sessionId) {
+                    window.AiAssistant?.setSessionId?.(data.sessionId);
+                }
                 const cv = data.cv || {};
+                aiOutput.dataset.actions = JSON.stringify(data.suggestedActions || []);
                 aiOutput.innerHTML = `
                     ${renderStructuredAi(data, "Review brief", data.summary)}
+                    ${window.AiAssistant?.renderActions ? window.AiAssistant.renderActions(data.suggestedActions || []) : ""}
                     <article class="ai-result-card ai-result-card--quiet">
                         <div class="ai-result-head">
                             <div>
@@ -303,6 +367,7 @@ window.PageModules.mo = window.PageModules.mo || {};
                         </div>
                     </article>
                 `;
+                window.AiAssistant?.bindActionButtons(aiOutput);
             });
         }
 

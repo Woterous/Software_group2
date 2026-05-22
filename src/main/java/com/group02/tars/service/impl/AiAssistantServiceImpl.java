@@ -136,6 +136,7 @@ public class AiAssistantServiceImpl implements AiAssistantService {
             row.put("missingSkills", match.missing());
             row.put("alreadyApplied", appliedJobIds.contains(ServiceSupport.normalize(job.jobId)));
             row.put("rationale", buildJobRationale(match, job));
+            row.put("actions", taRecommendationActions(row));
             rows.add(row);
         }
 
@@ -153,6 +154,10 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         data.put("student", student);
         List<Map<String, Object>> recommendations = rows.stream().limit(5).toList();
         data.put("recommendations", recommendations);
+        data.put("suggestedActions", recommendations.stream()
+            .flatMap(row -> asActionList(row.get("actions")).stream())
+            .limit(5)
+            .toList());
         data.put("guidance", "Review the highest-score jobs first, then confirm deadline and workload fit before applying.");
         attachTaRecommendationView(data, student, recommendations);
         return data;
@@ -211,6 +216,7 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         data.put("summary", deterministicSummary);
         data.put("deterministicSummary", deterministicSummary);
         data.put("reviewQuestions", buildReviewQuestions(match, cvFileName));
+        data.put("suggestedActions", moCandidateActions(application.applicationId, cvFileName, applicant.name));
         attachMoCandidateView(data, candidate, jobData, cv, application, match, deterministicSummary, cvInput);
         return data;
     }
@@ -276,6 +282,7 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         String deterministicSummary = buildAdminSummary(people, roleSignals);
         data.put("summary", deterministicSummary);
         data.put("deterministicSummary", deterministicSummary);
+        data.put("suggestedActions", adminRiskActions(people, roleSignals));
         attachAdminRiskView(data, people, roleSignals, deterministicSummary);
         return data;
     }
@@ -313,7 +320,13 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         data.put("modelCalled", false);
 
         if (!provider.isReady()) {
-            data.put("answer", "The AI provider is not configured. I can see your role context, but cannot call the model yet.");
+            Map<String, Object> localView = buildLocalChatView(normalizedMessage, normalizedRole, context);
+            List<Map<String, Object>> cards = buildContextualCards(normalizedMessage, normalizedRole, context);
+            localView.put("cards", cards);
+            data.put("answerView", localView);
+            data.put("answer", localView.get("answer"));
+            data.put("suggestedActions", chooseActions(cards, localChatActions(normalizedRole, context)));
+            data.put("modelUnavailableReason", "AI provider is not configured.");
             return data;
         }
 
@@ -326,16 +339,15 @@ public class AiAssistantServiceImpl implements AiAssistantService {
 
             Return this JSON shape exactly:
             {
-              "headline": "short title",
               "answer": "direct answer",
-              "keyPoints": ["important point"],
-              "nextActions": ["concrete next click or check"],
-              "warnings": ["risk or limitation, empty if none"]
+              "cards": []
             }
 
             Rules:
             - Help the user operate this exact TA recruitment system.
-            - If the user asks for an action that should be done through a page, name the page and the next click.
+            - Write answer as a normal conversational reply, not a report.
+            - Do not force key point, next action, or warning sections.
+            - Leave cards empty unless the question explicitly asks for recommendations, review items, applications, candidates, workload, or risks.
             - JSON only.
             """.formatted(normalizedMessage, toJson(context));
 
@@ -344,11 +356,17 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         try {
             Map<String, Object> parsed = parseJsonObject(result.content());
             Map<String, Object> answerView = normalizeChatView(parsed, normalizedMessage);
+            List<Map<String, Object>> cards = buildContextualCards(normalizedMessage, normalizedRole, context);
+            answerView.put("cards", cards);
             data.put("answerView", answerView);
             data.put("answer", answerView.get("answer"));
         } catch (Exception ignored) {
             data.put("answer", result.content());
         }
+        List<Map<String, Object>> cards = asObjectMap(data.get("answerView")).isEmpty()
+            ? List.of()
+            : asObjectList(asObjectMap(data.get("answerView")).get("cards"));
+        data.put("suggestedActions", chooseActions(cards, localChatActions(normalizedRole, context)));
         data.put("model", result.model());
         data.put("finishReason", result.finishReason());
         data.put("usage", result.usage());
@@ -812,22 +830,27 @@ public class AiAssistantServiceImpl implements AiAssistantService {
 
     private Map<String, Object> normalizeChatView(Map<String, Object> raw, String userMessage) {
         String answer = firstNonBlank(asString(raw.get("answer")), "No answer returned.");
-        Map<String, Object> fallback = structuredView(
-            firstNonBlank(asString(raw.get("headline")), "Assistant response"),
-            Map.of(
-                "label", "Answer",
-                "title", "Direct response",
-                "reason", answer,
-                "meta", "assistant"
-            ),
-            List.of(
-                section("Key points", "strength", chooseStringList(raw.get("keyPoints"), List.of("Request: " + userMessage))),
-                section("Next actions", "action", chooseStringList(raw.get("nextActions"), List.of("Review the relevant page and confirm the action."))),
-                section("Warnings", "risk", chooseStringList(raw.get("warnings"), List.of()))
-            )
-        );
-        fallback.put("answer", answer);
-        return normalizeStructuredView(fallback, fallback);
+        Map<String, Object> view = new LinkedHashMap<>();
+        view.put("answer", answer);
+        view.put("cards", asObjectList(raw.get("cards")));
+
+        List<Map<String, Object>> legacySections = new ArrayList<>();
+        legacySections.add(section("Key points", "strength", chooseStringList(raw.get("keyPoints"), List.of())));
+        legacySections.add(section("Next actions", "action", chooseStringList(raw.get("nextActions"), List.of())));
+        legacySections.add(section("Warnings", "risk", chooseStringList(raw.get("warnings"), List.of())));
+        List<Map<String, Object>> sections = legacySections.stream()
+            .filter(section -> !asStringList(section.get("items")).isEmpty())
+            .toList();
+        if (!sections.isEmpty()) {
+            view.put("sections", sections);
+        }
+        if (!asString(raw.get("headline")).isBlank()) {
+            view.put("headline", asString(raw.get("headline")));
+        }
+        if (!userMessage.isBlank()) {
+            view.put("query", userMessage);
+        }
+        return view;
     }
 
     private Map<String, Object> normalizeStructuredView(Map<String, Object> raw, Map<String, Object> fallback) {
@@ -895,6 +918,325 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         return section;
     }
 
+    private List<Map<String, Object>> taRecommendationActions(Map<String, Object> row) {
+        String jobId = asString(row.get("jobId"));
+        String title = asString(row.get("title"));
+        List<Map<String, Object>> actions = new ArrayList<>();
+        actions.add(action("NAVIGATE", "View role", Map.of(
+            "url", "/pages/ta/job-detail?id=" + jobId,
+            "jobId", jobId
+        ), false, "secondary"));
+        if (!Boolean.TRUE.equals(row.get("alreadyApplied"))) {
+            actions.add(action("TA_APPLY_JOB", "Apply", Map.of(
+                "jobId", jobId,
+                "title", title
+            ), true, "primary"));
+        }
+        return actions;
+    }
+
+    private List<Map<String, Object>> moCandidateActions(String applicationId, String cvFileName, String candidateName) {
+        List<Map<String, Object>> actions = new ArrayList<>();
+        actions.add(action("MO_SELECT_APPLICATION", "Select TA", Map.of(
+            "applicationId", ServiceSupport.normalize(applicationId),
+            "reviewNote", "Selected after AI-assisted review of " + ServiceSupport.normalize(candidateName) + "."
+        ), true, "primary"));
+        actions.add(action("MO_REJECT_APPLICATION", "Reject", Map.of(
+            "applicationId", ServiceSupport.normalize(applicationId),
+            "reviewNote", "Rejected after AI-assisted review. Evidence did not sufficiently match the role requirements."
+        ), true, "danger"));
+        if (!ServiceSupport.normalize(cvFileName).isBlank()) {
+            actions.add(action("OPEN_CV", "Open CV", Map.of(
+                "cvPath", "/uploads/" + ServiceSupport.normalize(cvFileName)
+            ), false, "secondary"));
+        }
+        return actions;
+    }
+
+    private List<Map<String, Object>> adminRiskActions(List<Map<String, Object>> people, List<Map<String, Object>> roleSignals) {
+        List<Map<String, Object>> actions = new ArrayList<>();
+        if (!people.isEmpty()) {
+            actions.add(action("NAVIGATE", "Review workload table", Map.of("url", "/pages/admin/workload"), false, "secondary"));
+        }
+        if (!roleSignals.isEmpty()) {
+            actions.add(action("FILTER_ADMIN_RISK", "Show role risks", Map.of("riskLevel", "warning"), false, "secondary"));
+        }
+        return actions;
+    }
+
+    private List<Map<String, Object>> buildContextualCards(String message, String role, Map<String, Object> context) {
+        if (!asksForCards(message)) {
+            return List.of();
+        }
+        if ("ta".equals(role)) {
+            return buildTaJobCards(context);
+        }
+        if ("mo".equals(role)) {
+            return buildMoApplicationCards(context);
+        }
+        if ("admin".equals(role)) {
+            return buildAdminRiskCards(context);
+        }
+        return List.of();
+    }
+
+    private boolean asksForCards(String message) {
+        String normalized = ServiceSupport.lower(message);
+        return containsAny(normalized,
+            "recommend", "suitable", "best", "match", "job", "role", "apply", "application", "candidate", "review",
+            "select", "risk", "workload", "overload", "warning", "user", "module",
+            "推荐", "适合", "职位", "岗位", "申请", "候选", "审核", "选择", "风险", "负载", "工作量", "用户", "课程"
+        );
+    }
+
+    private boolean containsAny(String text, String... keywords) {
+        for (String keyword : keywords) {
+            if (text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<Map<String, Object>> buildTaJobCards(Map<String, Object> context) {
+        Map<String, Object> currentUser = asObjectMap(context.get("currentUser"));
+        Set<String> taSkills = normalizeSkills(asStringList(currentUser.get("skills")));
+        Set<String> appliedJobIds = asObjectList(context.get("myApplications")).stream()
+            .map(app -> ServiceSupport.normalize(asString(app.get("jobId"))))
+            .collect(LinkedHashSet::new, LinkedHashSet::add, LinkedHashSet::addAll);
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Map<String, Object> jobRow : asObjectList(context.get("openJobs"))) {
+            Job job = jobFromMap(jobRow);
+            MatchResult match = matchSkills(taSkills, normalizeSkills(job.requiredSkills));
+            int score = scoreJob(match, job);
+            Map<String, Object> row = new LinkedHashMap<>(jobRow);
+            row.put("score", score);
+            row.put("matchedSkills", match.matched());
+            row.put("missingSkills", match.missing());
+            row.put("alreadyApplied", appliedJobIds.contains(ServiceSupport.normalize(job.jobId)));
+            row.put("rationale", buildJobRationale(match, job));
+            row.put("actions", taRecommendationActions(row));
+            rows.add(row);
+        }
+        rows.sort(Comparator
+            .comparing((Map<String, Object> row) -> Boolean.TRUE.equals(row.get("alreadyApplied")))
+            .thenComparing(row -> -parseInt(row.get("score"), 0))
+            .thenComparing(row -> ServiceSupport.normalize(asString(row.get("deadline")))));
+
+        return rows.stream()
+            .limit(3)
+            .map(row -> card(
+                "job",
+                asString(row.get("status")),
+                asString(row.get("title")),
+                asString(row.get("moduleName")),
+                asString(row.get("score")) + "%",
+                List.of("deadline " + asString(row.get("deadline")), asString(row.get("weeklyHours")) + "h/week"),
+                List.of(
+                    metric("Matched", String.join(", ", asStringList(row.get("matchedSkills")))),
+                    metric("Missing", String.join(", ", asStringList(row.get("missingSkills"))))
+                ),
+                asString(row.get("rationale")),
+                List.of(),
+                asActionList(row.get("actions"))
+            ))
+            .toList();
+    }
+
+    private List<Map<String, Object>> buildMoApplicationCards(Map<String, Object> context) {
+        return asObjectList(context.get("myApplications")).stream()
+            .filter(row -> "pending".equals(ServiceSupport.lower(asString(row.get("status")))))
+            .limit(3)
+            .map(row -> {
+                String applicantName = firstNonBlank(asString(row.get("applicantName")), asString(row.get("userId")));
+                String cvFileName = asString(row.get("cvFileName"));
+                return card(
+                    "application",
+                    "pending review",
+                    applicantName,
+                    asString(row.get("jobTitle")) + " · " + asString(row.get("moduleName")),
+                    "",
+                    asStringList(row.get("applicantSkills")).stream().limit(4).toList(),
+                    List.of(
+                        metric("Application", asString(row.get("applicationId"))),
+                        metric("Updated", asString(row.get("updatedAt")))
+                    ),
+                    "Review the candidate evidence, then select or reject when you are ready.",
+                    List.of(),
+                    moCandidateActions(asString(row.get("applicationId")), cvFileName, applicantName)
+                );
+            })
+            .toList();
+    }
+
+    private List<Map<String, Object>> buildAdminRiskCards(Map<String, Object> context) {
+        return asObjectList(context.get("workloadRiskPreview")).stream()
+            .filter(row -> !"normal".equals(ServiceSupport.lower(asString(row.get("riskLevel")))))
+            .limit(3)
+            .map(row -> card(
+                "risk",
+                asString(row.get("riskLevel")),
+                asString(row.get("name")),
+                asString(row.get("userId")),
+                asString(row.get("totalHours")) + "h",
+                List.of(asString(row.get("selectedModules")) + " selected module(s)"),
+                List.of(
+                    metric("Risk", asString(row.get("riskLevel"))),
+                    metric("Hours", asString(row.get("totalHours")))
+                ),
+                asString(row.get("reason")),
+                List.of(),
+                adminRiskActions(List.of(row), List.of(row))
+            ))
+            .toList();
+    }
+
+    private List<Map<String, Object>> chooseActions(List<Map<String, Object>> cards, List<Map<String, Object>> fallback) {
+        List<Map<String, Object>> actions = cards.stream()
+            .flatMap(card -> asActionList(card.get("actions")).stream())
+            .toList();
+        return actions.isEmpty() ? fallback : actions;
+    }
+
+    private Map<String, Object> card(
+        String type,
+        String kicker,
+        String title,
+        String subtitle,
+        String score,
+        List<String> badges,
+        List<Map<String, Object>> metrics,
+        String body,
+        List<Map<String, Object>> sections,
+        List<Map<String, Object>> actions
+    ) {
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("type", ServiceSupport.normalize(type));
+        card.put("kicker", ServiceSupport.normalize(kicker));
+        card.put("title", ServiceSupport.normalize(title));
+        card.put("subtitle", ServiceSupport.normalize(subtitle));
+        card.put("score", ServiceSupport.normalize(score));
+        card.put("badges", badges == null ? List.of() : badges.stream().filter(item -> !ServiceSupport.normalize(item).isBlank()).toList());
+        card.put("metrics", metrics == null ? List.of() : metrics);
+        card.put("body", ServiceSupport.normalize(body));
+        card.put("sections", sections == null ? List.of() : sections);
+        card.put("actions", actions == null ? List.of() : actions);
+        return card;
+    }
+
+    private Map<String, Object> metric(String label, String value) {
+        Map<String, Object> metric = new LinkedHashMap<>();
+        metric.put("label", ServiceSupport.normalize(label));
+        metric.put("value", firstNonBlank(ServiceSupport.normalize(value), "None"));
+        return metric;
+    }
+
+    private Job jobFromMap(Map<String, Object> row) {
+        Job job = new Job();
+        job.jobId = asString(row.get("jobId"));
+        job.title = asString(row.get("title"));
+        job.moduleName = asString(row.get("moduleName"));
+        job.requiredSkills = asString(row.get("requiredSkills"));
+        job.deadline = asString(row.get("deadline"));
+        job.status = asString(row.get("status"));
+        job.weeklyHours = parseInt(row.get("weeklyHours"), 0);
+        job.postedBy = asString(row.get("postedBy"));
+        return job;
+    }
+
+    private Map<String, Object> buildLocalChatView(String message, String role, Map<String, Object> context) {
+        String answer;
+
+        if ("ta".equals(role)) {
+            List<Map<String, Object>> openJobs = asObjectList(context.get("openJobs"));
+            List<Map<String, Object>> myApplications = asObjectList(context.get("myApplications"));
+            answer = asksForCards(message)
+                ? "I found the strongest role matches from your profile and current open jobs. You can open a role or apply directly from the cards below."
+                : "I can help with applications, role fit, deadlines, and what to do next. Right now I can see " + openJobs.size()
+                    + " open or closing role(s) and " + myApplications.size() + " application(s) for you.";
+        } else if ("mo".equals(role)) {
+            List<Map<String, Object>> myJobs = asObjectList(context.get("myJobs"));
+            List<Map<String, Object>> myApplications = asObjectList(context.get("myApplications"));
+            answer = asksForCards(message)
+                ? "I pulled the most relevant pending applications for your modules. Each card includes review actions so you can continue without leaving the conversation."
+                : "I can help review candidates from your owned jobs. This context includes "
+                    + myJobs.size() + " job(s) and " + myApplications.size() + " application(s).";
+        } else if ("admin".equals(role)) {
+            List<Map<String, Object>> risks = asObjectList(context.get("workloadRiskPreview"));
+            answer = asksForCards(message)
+                ? "I found the workload items that need the most attention. Use the cards to jump into the workload view or refresh the risk filter."
+                : "I can inspect workload and role-level risk from current data. The preview includes "
+                    + risks.size() + " TA workload row(s).";
+        } else {
+            answer = "I can answer workspace questions after you sign in.";
+        }
+
+        Map<String, Object> view = new LinkedHashMap<>();
+        view.put("answer", answer);
+        return view;
+    }
+
+    private List<Map<String, Object>> localChatActions(String role, Map<String, Object> context) {
+        if ("ta".equals(role)) {
+            List<Map<String, Object>> openJobs = asObjectList(context.get("openJobs"));
+            if (!openJobs.isEmpty()) {
+                Map<String, Object> firstJob = openJobs.get(0);
+                String jobId = asString(firstJob.get("jobId"));
+                return List.of(
+                    action("NAVIGATE", "Open job board", Map.of("url", "/pages/ta/jobs"), false, "secondary"),
+                    action("TA_APPLY_JOB", "Apply to first role", Map.of("jobId", jobId, "title", asString(firstJob.get("title"))), true, "primary")
+                );
+            }
+            return List.of(action("NAVIGATE", "Open job board", Map.of("url", "/pages/ta/jobs"), false, "secondary"));
+        }
+        if ("mo".equals(role)) {
+            List<Map<String, Object>> pending = asObjectList(context.get("myApplications")).stream()
+                .filter(row -> "pending".equals(ServiceSupport.lower(asString(row.get("status")))))
+                .toList();
+            if (!pending.isEmpty()) {
+                String applicationId = asString(pending.get(0).get("applicationId"));
+                return List.of(action("NAVIGATE", "Open next review", Map.of(
+                    "url", "/pages/mo/review?appId=" + applicationId,
+                    "applicationId", applicationId
+                ), false, "secondary"));
+            }
+            return List.of(action("NAVIGATE", "Open applicants", Map.of("url", "/pages/mo/applicants"), false, "secondary"));
+        }
+        if ("admin".equals(role)) {
+            return List.of(action("NAVIGATE", "Open workload", Map.of("url", "/pages/admin/workload"), false, "secondary"));
+        }
+        return List.of();
+    }
+
+    private Map<String, Object> action(String type, String label, Map<String, Object> payload, boolean requiresConfirmation, String tone) {
+        Map<String, Object> action = new LinkedHashMap<>();
+        action.put("type", ServiceSupport.normalize(type));
+        action.put("label", ServiceSupport.normalize(label));
+        action.put("payload", payload == null ? Map.of() : payload);
+        action.put("requiresConfirmation", requiresConfirmation);
+        action.put("tone", ServiceSupport.normalize(tone).isBlank() ? "secondary" : ServiceSupport.normalize(tone));
+        return action;
+    }
+
+    private List<Map<String, Object>> asActionList(Object value) {
+        return asObjectList(value);
+    }
+
+    private List<Map<String, Object>> asObjectList(Object value) {
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Object item : list) {
+            Map<String, Object> row = asObjectMap(item);
+            if (!row.isEmpty()) {
+                rows.add(row);
+            }
+        }
+        return rows;
+    }
+
     private Map<String, Object> parseJsonObject(String content) throws IOException {
         String normalized = ServiceSupport.normalize(content);
         if (normalized.startsWith("```")) {
@@ -958,6 +1300,14 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         List<User> users = storage.loadUsers();
         List<Job> jobs = storage.loadJobs();
         List<Application> applications = storage.loadApplications();
+        Map<String, Job> jobById = new LinkedHashMap<>();
+        for (Job job : jobs) {
+            jobById.put(ServiceSupport.normalize(job.jobId), job);
+        }
+        Map<String, User> userById = new LinkedHashMap<>();
+        for (User user : users) {
+            userById.put(ServiceSupport.normalize(user.userId), user);
+        }
         context.put("systemSnapshot", Map.of(
             "users", users.size(),
             "jobs", jobs.size(),
@@ -985,13 +1335,13 @@ public class AiAssistantServiceImpl implements AiAssistantService {
                 .toList());
             context.put("myApplications", applications.stream()
                 .filter(app -> ownedJobIds.contains(ServiceSupport.normalize(app.jobId)))
-                .map(this::applicationMap)
+                .map(app -> applicationContextMap(app, jobById, userById))
                 .toList());
         } else if ("admin".equals(role)) {
             context.put("recentApplications", applications.stream()
                 .sorted(Comparator.comparing((Application app) -> ServiceSupport.normalize(app.updatedAt)).reversed())
                 .limit(8)
-                .map(this::applicationMap)
+                .map(app -> applicationContextMap(app, jobById, userById))
                 .toList());
             context.put("workloadRiskPreview", buildWorkloadRows(users, jobs, applications, "").stream().limit(8).toList());
         }
@@ -1032,6 +1382,24 @@ public class AiAssistantServiceImpl implements AiAssistantService {
         row.put("status", app.status);
         row.put("reviewNote", app.reviewNote);
         row.put("updatedAt", app.updatedAt);
+        return row;
+    }
+
+    private Map<String, Object> applicationContextMap(Application app, Map<String, Job> jobById, Map<String, User> userById) {
+        Map<String, Object> row = applicationMap(app);
+        Job job = jobById.get(ServiceSupport.normalize(app.jobId));
+        User applicant = userById.get(ServiceSupport.normalize(app.userId));
+        if (job != null) {
+            row.put("jobTitle", job.title);
+            row.put("moduleName", job.moduleName);
+            row.put("requiredSkills", job.requiredSkills);
+            row.put("weeklyHours", job.weeklyHours);
+        }
+        if (applicant != null) {
+            row.put("applicantName", applicant.name);
+            row.put("applicantSkills", applicant.skills == null ? List.of() : applicant.skills);
+            row.put("cvFileName", extractCvFileName(applicant.cvPath));
+        }
         return row;
     }
 

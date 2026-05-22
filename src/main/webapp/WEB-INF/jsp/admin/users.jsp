@@ -12,15 +12,26 @@
                 <h2>User Registry</h2>
                 <span class="muted">Read-only governance view</span>
             </div>
-            <form id="admin-user-filter-form" class="toolbar-row">
-                <select name="role">
-                    <option value="">All Roles</option>
-                    <option value="ta">TA</option>
-                    <option value="mo">MO</option>
-                    <option value="admin">Admin</option>
-                </select>
-                <input type="text" name="keyword" placeholder="Search name or email" />
-                <button class="ghost-btn" type="submit">Filter</button>
+            <form id="admin-user-filter-form" class="filter-shell">
+                <div class="filter-shell-grid">
+                    <label class="filter-field filter-field--search">Keyword
+                        <input type="text" name="keyword" placeholder="Search name or email" />
+                        <button class="filter-search-btn" type="submit" aria-label="Search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m21 21-4.3-4.3"></path>
+                                <circle cx="11" cy="11" r="7"></circle>
+                            </svg>
+                        </button>
+                    </label>
+                    <label class="filter-field">Role
+                        <select name="role">
+                            <option value="">All Roles</option>
+                            <option value="ta">TA</option>
+                            <option value="mo">MO</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </label>
+                </div>
             </form>
 
             <div class="table-wrap">

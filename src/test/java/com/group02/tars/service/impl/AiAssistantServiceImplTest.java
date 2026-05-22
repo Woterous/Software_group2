@@ -135,6 +135,76 @@ class AiAssistantServiceImplTest {
         assertEquals("overload", firstRisk.get("riskLevel"));
     }
 
+    @Test
+    void chatForTaRecommendationShouldReturnJobCardsWithActions() throws Exception {
+        User ta = user("TA001", "James", "james@school.edu", "Password123!", "ta");
+        ta.skills = List.of("Java", "OOP", "Tutoring");
+        Job strong = job("JOB001", "TA for Software Engineering", "EBU6304", "open", "2026-06-01");
+        strong.requiredSkills = "Java, OOP";
+        InMemoryFileStorage storage = new InMemoryFileStorage()
+            .withUsers(List.of(ta))
+            .withJobs(List.of(strong));
+        AiAssistantServiceImpl service = new AiAssistantServiceImpl(storage);
+
+        Map<String, Object> data = service.chat("TA001", "ta", "/pages/ta/jobs", "哪个职位最适合我？");
+        Map<?, ?> view = (Map<?, ?>) data.get("answerView");
+        List<?> cards = (List<?>) view.get("cards");
+        Map<?, ?> first = (Map<?, ?>) cards.get(0);
+        List<?> actions = (List<?>) first.get("actions");
+        Map<?, ?> action = (Map<?, ?>) actions.get(1);
+
+        assertEquals("job", first.get("type"));
+        assertEquals("JOB001", ((Map<?, ?>) action.get("payload")).get("jobId"));
+        assertEquals("TA_APPLY_JOB", action.get("type"));
+    }
+
+    @Test
+    void chatForMoReviewShouldReturnApplicationCardsWithDecisionActions() throws Exception {
+        User mo = user("MO001", "Morgan", "morgan@school.edu", "Password123!", "mo");
+        User ta = user("TA001", "James", "james@school.edu", "Password123!", "ta");
+        ta.skills = List.of("Java");
+        Job job = job("JOB001", "TA for Software Engineering", "EBU6304", "open", "2026-06-01");
+        job.postedBy = "MO001";
+        InMemoryFileStorage storage = new InMemoryFileStorage()
+            .withUsers(List.of(mo, ta))
+            .withJobs(List.of(job))
+            .withApplications(List.of(application("APP001", "TA001", "JOB001", "pending", "2026-04-01")));
+        AiAssistantServiceImpl service = new AiAssistantServiceImpl(storage);
+
+        Map<String, Object> data = service.chat("MO001", "mo", "/pages/mo/applicants", "帮我审核候选人");
+        Map<?, ?> view = (Map<?, ?>) data.get("answerView");
+        Map<?, ?> first = (Map<?, ?>) ((List<?>) view.get("cards")).get(0);
+        List<?> actions = (List<?>) first.get("actions");
+
+        assertEquals("application", first.get("type"));
+        assertEquals("MO_SELECT_APPLICATION", ((Map<?, ?>) actions.get(0)).get("type"));
+        assertEquals("MO_REJECT_APPLICATION", ((Map<?, ?>) actions.get(1)).get("type"));
+    }
+
+    @Test
+    void chatForAdminRiskShouldReturnRiskCards() throws Exception {
+        User admin = user("AD001", "Avery", "avery@school.edu", "Password123!", "admin");
+        User ta = user("TA001", "James", "james@school.edu", "Password123!", "ta");
+        Job first = job("JOB001", "TA for Software Engineering", "EBU6304", "open", "2026-06-01");
+        first.weeklyHours = 18;
+        Job second = job("JOB002", "TA for Database Systems", "EBU6305", "open", "2026-06-01");
+        second.weeklyHours = 12;
+        InMemoryFileStorage storage = new InMemoryFileStorage()
+            .withUsers(List.of(admin, ta))
+            .withJobs(List.of(first, second))
+            .withApplications(List.of(
+                application("APP001", "TA001", "JOB001", "selected", "2026-04-01"),
+                application("APP002", "TA001", "JOB002", "selected", "2026-04-01")));
+        AiAssistantServiceImpl service = new AiAssistantServiceImpl(storage);
+
+        Map<String, Object> data = service.chat("AD001", "admin", "/pages/admin/workload", "看一下工作量风险");
+        Map<?, ?> view = (Map<?, ?>) data.get("answerView");
+        Map<?, ?> riskCard = (Map<?, ?>) ((List<?>) view.get("cards")).get(0);
+
+        assertEquals("risk", riskCard.get("type"));
+        assertEquals("TA001", riskCard.get("subtitle"));
+    }
+
     private static class CapturingAiProvider implements AiProvider {
         boolean fileCalled;
         AiFileInput capturedFile;
