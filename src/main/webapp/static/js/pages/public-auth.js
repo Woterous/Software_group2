@@ -278,7 +278,7 @@ window.PageModules.public = window.PageModules.public || {};
     async function initLogin() {
         const existing = currentSession();
         if (existing) {
-            window.location.href = window.UIKit.roleHome(existing.role);
+            window.UIKit.navigateWithTransition(window.UIKit.roleHome(existing.role));
             return;
         }
 
@@ -306,7 +306,7 @@ window.PageModules.public = window.PageModules.public || {};
             window.UIKit.toast("Login successful.", "success");
             const role = result.data.user.role;
             setTimeout(() => {
-                window.location.href = window.UIKit.roleHome(role);
+                window.UIKit.navigateWithTransition(window.UIKit.roleHome(role));
             }, 280);
         });
     }
@@ -314,7 +314,7 @@ window.PageModules.public = window.PageModules.public || {};
     async function initRegister() {
         const existing = currentSession();
         if (existing) {
-            window.location.href = window.UIKit.roleHome(existing.role);
+            window.UIKit.navigateWithTransition(window.UIKit.roleHome(existing.role));
             return;
         }
 
@@ -497,7 +497,7 @@ window.PageModules.public = window.PageModules.public || {};
             clearSelectedCvFile();
             syncCvVisibility();
             setTimeout(() => {
-                window.location.href = `${window.APP_CONTEXT}/pages/login`;
+                window.UIKit.navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             }, 360);
         });
     }

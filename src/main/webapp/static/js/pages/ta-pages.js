@@ -472,7 +472,7 @@ window.PageModules.ta = window.PageModules.ta || {};
                     ? renderModelView(data.modelView, provider)
                     : `<div class="ai-provider-note"><span>${window.UIKit.escapeHtml(provider.mode || "tool-only")}</span><p>${window.UIKit.escapeHtml(assistantText)}</p></div>`}
                 ${rows.map((row) => `
-                    <article class="ai-result-card">
+                    <article class="ai-result-card" data-actions="${encodeURIComponent(JSON.stringify(row.actions || []))}">
                         <div class="ai-result-head">
                             <div>
                                 <span class="section-kicker">${window.UIKit.escapeHtml(row.moduleName || "-")}</span>
@@ -485,22 +485,30 @@ window.PageModules.ta = window.PageModules.ta || {};
                             ${(row.matchedSkills || []).map((skill) => `<span class="skill-pill">${window.UIKit.escapeHtml(skill)}</span>`).join("")}
                             ${row.alreadyApplied ? '<span class="badge pending">already applied</span>' : ""}
                         </div>
+                        ${window.AiAssistant?.renderActions ? window.AiAssistant.renderActions(row.actions || []) : ""}
                         <a class="text-link" href="${window.APP_CONTEXT}/pages/ta/job-detail?id=${window.UIKit.escapeHtml(row.jobId)}">Open role detail</a>
                     </article>
                 `).join("")}
             `;
+            window.AiAssistant?.bindActionButtons(aiOutput);
         };
 
         if (aiBtn && aiOutput) {
             aiBtn.addEventListener("click", async () => {
                 aiBtn.disabled = true;
                 aiOutput.innerHTML = '<div class="ai-loading-card">Generating profile-based matches...</div>';
-                const result = await window.ApiClient.aiTaJobRecommendations();
+                const result = await window.ApiClient.aiTaJobRecommendations({
+                    sessionId: window.AiAssistant?.getSessionId?.() || "",
+                    page: "ta/jobs"
+                });
                 aiBtn.disabled = false;
                 if (!result.success) {
                     window.UIKit.toast(result.error.message, "error");
                     aiOutput.innerHTML = "";
                     return;
+                }
+                if (result.data?.sessionId) {
+                    window.AiAssistant?.setSessionId?.(result.data.sessionId);
                 }
                 renderAiRecommendations(result.data);
             });

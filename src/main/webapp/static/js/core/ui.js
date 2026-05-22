@@ -289,10 +289,11 @@
     function renderAiStructuredView({ providerMode, headline, priority, sections }) {
         const priorityData = priority || {};
         const sectionRows = Array.isArray(sections) ? sections : [];
+        const providerLabel = providerMode ? "AI assistant" : "";
         return `
             <article class="ai-model-summary">
                 <div class="ai-model-summary-head">
-                    ${providerMode ? `<span>${escapeHtml(providerMode)}</span>` : ""}
+                    ${providerLabel ? `<span>${escapeHtml(providerLabel)}</span>` : ""}
                     <strong>${escapeHtml(headline || "AI analysis is ready.")}</strong>
                 </div>
                 ${priorityData.title || priorityData.reason ? `
@@ -435,9 +436,64 @@
         });
     }
 
+    function isTransitionableLink(link, event) {
+        if (!link || event.defaultPrevented) return false;
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+        if (link.target && link.target !== "_self") return false;
+        if (link.hasAttribute("download")) return false;
+        if (link.dataset.transition === "none") return false;
+
+        const href = link.getAttribute("href") || "";
+        if (!href || href.startsWith("#") || href.startsWith("javascript:") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+            return false;
+        }
+
+        const nextUrl = new URL(link.href, window.location.href);
+        if (nextUrl.origin !== window.location.origin) return false;
+        if (nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search && nextUrl.hash) return false;
+
+        const context = window.APP_CONTEXT || "";
+        return !context || nextUrl.pathname.startsWith(context + "/") || nextUrl.pathname === context;
+    }
+
+    function navigateWithTransition(url) {
+        if (!url) return;
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            window.location.href = url;
+            return;
+        }
+        if (document.body.classList.contains("is-page-exiting")) return;
+        document.body.classList.add("is-page-exiting");
+        window.setTimeout(() => {
+            window.location.href = url;
+        }, 150);
+    }
+
+    function initPageTransitions() {
+        if (document.documentElement.dataset.pageTransitionsReady === "1") return;
+        document.documentElement.dataset.pageTransitionsReady = "1";
+
+        window.requestAnimationFrame(() => {
+            document.body.classList.add("is-page-ready");
+        });
+
+        document.addEventListener("click", (event) => {
+            const link = event.target.closest("a[href]");
+            if (!isTransitionableLink(link, event)) return;
+            event.preventDefault();
+            navigateWithTransition(link.href);
+        });
+
+        window.addEventListener("pageshow", () => {
+            document.body.classList.remove("is-page-exiting");
+            document.body.classList.add("is-page-ready");
+        });
+    }
+
     function bindGlobalActions() {
         initCustomSelects(document);
         initSidebarSegmentedNav();
+        initPageTransitions();
 
         document.querySelectorAll('[data-action="theme-toggle"]').forEach((btn) => {
             btn.addEventListener("click", () => {
@@ -455,7 +511,7 @@
                     return;
                 }
                 window.sessionStorage.removeItem("tars.session.user");
-                window.location.href = `${window.APP_CONTEXT}/pages/login`;
+                navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             });
         });
     }
@@ -468,7 +524,7 @@
             session = null;
         }
         if (!session || (allowedRoles && !allowedRoles.includes(session.role))) {
-            window.location.href = `${window.APP_CONTEXT}/pages/login`;
+            navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             return null;
         }
         return session;
@@ -486,6 +542,7 @@
         roleHome,
         openModal,
         bindGlobalActions,
+        navigateWithTransition,
         ensureSessionOrRedirect,
         escapeHtml,
         refreshSelectComponents,

@@ -279,7 +279,10 @@ window.PageModules.mo = window.PageModules.mo || {};
             aiBtn.addEventListener("click", async () => {
                 aiBtn.disabled = true;
                 aiOutput.innerHTML = '<div class="ai-loading-card">Generating candidate review summary...</div>';
-                const summaryResult = await window.ApiClient.aiMoCandidateSummary(app.applicationId);
+                const summaryResult = await window.ApiClient.aiMoCandidateSummary(app.applicationId, {
+                    sessionId: window.AiAssistant?.getSessionId?.() || "",
+                    page: "mo/review"
+                });
                 aiBtn.disabled = false;
                 if (!summaryResult.success) {
                     window.UIKit.toast(summaryResult.error.message, "error");
@@ -287,9 +290,14 @@ window.PageModules.mo = window.PageModules.mo || {};
                     return;
                 }
                 const data = summaryResult.data;
+                if (data?.sessionId) {
+                    window.AiAssistant?.setSessionId?.(data.sessionId);
+                }
                 const cv = data.cv || {};
+                aiOutput.dataset.actions = JSON.stringify(data.suggestedActions || []);
                 aiOutput.innerHTML = `
                     ${renderStructuredAi(data, "Review brief", data.summary)}
+                    ${window.AiAssistant?.renderActions ? window.AiAssistant.renderActions(data.suggestedActions || []) : ""}
                     <article class="ai-result-card ai-result-card--quiet">
                         <div class="ai-result-head">
                             <div>
@@ -303,6 +311,7 @@ window.PageModules.mo = window.PageModules.mo || {};
                         </div>
                     </article>
                 `;
+                window.AiAssistant?.bindActionButtons(aiOutput);
             });
         }
 
