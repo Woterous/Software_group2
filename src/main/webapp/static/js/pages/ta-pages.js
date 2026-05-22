@@ -610,6 +610,8 @@ window.PageModules.ta = window.PageModules.ta || {};
             event.preventDefault();
             load(1);
         });
+        form.module.addEventListener("change", () => load(1));
+        form.status.addEventListener("change", () => load(1));
 
         await load(1);
     }

@@ -6,6 +6,9 @@
  */
 (function () {
     let selectRuntimeReady = false;
+    const PAGE_CACHE_LIMIT = 8;
+    const pageCache = new Map();
+    let navigationInFlight = null;
 
     function byId(id) {
         return document.getElementById(id);
@@ -456,17 +459,157 @@
         return !context || nextUrl.pathname.startsWith(context + "/") || nextUrl.pathname === context;
     }
 
-    function navigateWithTransition(url) {
-        if (!url) return;
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            window.location.href = url;
-            return;
+    function pageCacheKey(url) {
+        const parsed = new URL(url, window.location.href);
+        parsed.hash = "";
+        return parsed.href;
+    }
+
+    function rememberPage(key, html) {
+        if (pageCache.has(key)) pageCache.delete(key);
+        pageCache.set(key, html);
+        while (pageCache.size > PAGE_CACHE_LIMIT) {
+            pageCache.delete(pageCache.keys().next().value);
         }
+    }
+
+    function isWorkspacePage(url) {
+        const nextUrl = new URL(url, window.location.href);
+        const context = window.APP_CONTEXT || "";
+        const role = document.body.dataset.role || "";
+        if (!role || role === "public") return false;
+        if (nextUrl.origin !== window.location.origin) return false;
+        return nextUrl.pathname.startsWith(`${context}/pages/${role}/`);
+    }
+
+    function parsePage(html) {
+        return new DOMParser().parseFromString(html, "text/html");
+    }
+
+    async function fetchPage(url) {
+        const key = pageCacheKey(url);
+        if (pageCache.has(key)) {
+            return parsePage(pageCache.get(key));
+        }
+
+        const response = await fetch(key, {
+            credentials: "same-origin",
+            headers: {
+                "Accept": "text/html",
+                "X-Requested-With": "fetch"
+            }
+        });
+        if (!response.ok) throw new Error(`Page request failed: ${response.status}`);
+
+        const html = await response.text();
+        rememberPage(key, html);
+        return parsePage(html);
+    }
+
+    function getPageRoot(source = document) {
+        return source.querySelector(".workspace, .public-shell");
+    }
+
+    function canSoftSwap(nextDoc, targetUrl) {
+        const nextBody = nextDoc.body;
+        if (!nextBody || !getPageRoot(nextDoc) || !getPageRoot(document)) return false;
+        if (nextBody.dataset.role !== document.body.dataset.role) return false;
+        return isWorkspacePage(targetUrl);
+    }
+
+    function applySoftPage(nextDoc, targetUrl, replaceHistory = false) {
+        if (!canSoftSwap(nextDoc, targetUrl)) return false;
+
+        const nextRoot = getPageRoot(nextDoc);
+        const currentRoot = getPageRoot(document);
+        nextRoot.classList.add("is-soft-navigated");
+        document.title = nextDoc.title || document.title;
+        document.body.dataset.role = nextDoc.body.dataset.role || document.body.dataset.role || "";
+        document.body.dataset.page = nextDoc.body.dataset.page || document.body.dataset.page || "";
+        currentRoot.replaceWith(nextRoot);
+        window.scrollTo(0, 0);
+
+        const historyAction = replaceHistory ? "replaceState" : "pushState";
+        window.history[historyAction]({ softPage: true }, "", targetUrl);
+        window.PageBoot?.boot?.();
+        document.dispatchEvent(new CustomEvent("tars:soft-navigation", {
+            detail: { url: targetUrl, page: document.body.dataset.page }
+        }));
+        return true;
+    }
+
+    function hardNavigate(url) {
         if (document.body.classList.contains("is-page-exiting")) return;
         document.body.classList.add("is-page-exiting");
         window.setTimeout(() => {
             window.location.href = url;
-        }, 150);
+        }, 110);
+    }
+
+    async function runSoftNavigation(url, replaceHistory = false) {
+        const targetUrl = new URL(url, window.location.href).href;
+        const key = pageCacheKey(targetUrl);
+        const cached = pageCache.has(key);
+        document.body.classList.toggle("is-page-loading", !cached);
+
+        try {
+            const nextDoc = await fetchPage(targetUrl);
+            document.body.classList.remove("is-page-loading");
+
+            if (!canSoftSwap(nextDoc, targetUrl)) {
+                hardNavigate(targetUrl);
+                return;
+            }
+
+            if (document.startViewTransition) {
+                document.body.classList.add("is-soft-swapping");
+                const transition = document.startViewTransition(() => {
+                    applySoftPage(nextDoc, targetUrl, replaceHistory);
+                });
+                await transition.finished.catch(() => {});
+                document.body.classList.remove("is-soft-swapping");
+            } else {
+                document.body.classList.add("is-soft-exiting");
+                await new Promise((resolve) => window.setTimeout(resolve, 90));
+                applySoftPage(nextDoc, targetUrl, replaceHistory);
+                document.body.classList.remove("is-soft-exiting");
+                document.body.classList.add("is-soft-entering");
+                window.requestAnimationFrame(() => {
+                    window.setTimeout(() => document.body.classList.remove("is-soft-entering"), 240);
+                });
+            }
+        } catch (_) {
+            hardNavigate(targetUrl);
+        } finally {
+            document.body.classList.remove("is-page-loading");
+            document.body.classList.remove("is-soft-swapping");
+            navigationInFlight = null;
+        }
+    }
+
+    function prefetchPage(url) {
+        if (!isWorkspacePage(url)) return;
+        const key = pageCacheKey(url);
+        if (pageCache.has(key)) return;
+        const schedule = window.requestIdleCallback || ((task) => window.setTimeout(task, 60));
+        schedule(() => {
+            fetchPage(url).catch(() => {});
+        });
+    }
+
+    function navigateWithTransition(url) {
+        if (!url) return;
+        const targetUrl = new URL(url, window.location.href);
+        if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
+            if (targetUrl.hash) window.location.hash = targetUrl.hash;
+            return;
+        }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !isWorkspacePage(targetUrl.href)) {
+            hardNavigate(targetUrl.href);
+            return;
+        }
+        if (navigationInFlight) return;
+        navigationInFlight = runSoftNavigation(targetUrl.href);
     }
 
     function initPageTransitions() {
@@ -484,9 +627,26 @@
             navigateWithTransition(link.href);
         });
 
+        ["pointerenter", "focusin", "touchstart"].forEach((eventName) => {
+            document.addEventListener(eventName, (event) => {
+                const link = event.target.closest?.("a[href]");
+                if (!link || link.dataset.transition === "none") return;
+                prefetchPage(link.href);
+            }, { passive: true, capture: true });
+        });
+
         window.addEventListener("pageshow", () => {
             document.body.classList.remove("is-page-exiting");
+            document.body.classList.remove("is-page-loading");
             document.body.classList.add("is-page-ready");
+        });
+
+        window.addEventListener("popstate", () => {
+            if (isWorkspacePage(window.location.href)) {
+                navigationInFlight = runSoftNavigation(window.location.href, true);
+            } else {
+                window.location.reload();
+            }
         });
     }
 

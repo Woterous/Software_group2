@@ -44,4 +44,9 @@ window.PageModules = window.PageModules || {};
     } else {
         boot();
     }
+
+    window.PageBoot = {
+        boot,
+        initPage
+    };
 })();

@@ -2,8 +2,25 @@
  * Persistent AI assistant drawer with role-aware chat and executable actions.
  */
 (function () {
-    const SESSION_KEY = "tars.ai.sessionId";
-    let activeSessionId = window.sessionStorage.getItem(SESSION_KEY) || "";
+    const LEGACY_SESSION_KEY = "tars.ai.sessionId";
+
+    function currentUser() {
+        try {
+            return JSON.parse(window.sessionStorage.getItem("tars.session.user") || "null") || {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function sessionKey() {
+        const user = currentUser();
+        const role = user.role || document.body.dataset.role || "public";
+        const userId = user.userId || "anonymous";
+        return `tars.ai.sessionId.${role}.${userId}`;
+    }
+
+    window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
+    let activeSessionId = window.sessionStorage.getItem(sessionKey()) || "";
 
     function pageContext() {
         return document.body.dataset.page || window.location.pathname;
@@ -145,7 +162,7 @@
             ${meta ? `<small>${window.UIKit.escapeHtml(meta)}</small>` : ""}
         `;
         root.appendChild(node);
-        root.scrollTop = root.scrollHeight;
+        scrollMessagesToBottom(root);
         bindActionButtons(node);
         return node;
     }
@@ -165,16 +182,31 @@
             ${cardActions.length ? "" : renderActions(actions)}
         `;
         root.appendChild(node);
-        root.scrollTop = root.scrollHeight;
+        scrollMessagesToBottom(root);
         bindActionButtons(node);
         return node;
     }
 
+    function scrollMessagesToBottom(messagesEl) {
+        if (!messagesEl) return;
+        window.requestAnimationFrame(() => {
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        });
+    }
+
+    function compareMessages(a, b) {
+        const timeA = Date.parse(a?.createdAt || "") || 0;
+        const timeB = Date.parse(b?.createdAt || "") || 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return String(a?.messageId || "").localeCompare(String(b?.messageId || ""));
+    }
+
     function renderPersistedMessages(messagesEl, conversation) {
         messagesEl.innerHTML = "";
-        const messages = conversation?.messages || [];
+        const messages = [...(conversation?.messages || [])].sort(compareMessages);
         if (!messages.length) {
             appendMessage(messagesEl, "assistant", "Ask about this recruitment workspace, current role workflow, workload risks, candidate review, or what to do next.");
+            scrollMessagesToBottom(messagesEl);
             return;
         }
         messages.forEach((message) => {
@@ -190,6 +222,7 @@
                 appendMessage(messagesEl, message.role || "assistant", message.content || "", message.createdAt || "", message.suggestedActions || []);
             }
         });
+        scrollMessagesToBottom(messagesEl);
     }
 
     async function loadConversations(messagesEl, listEl) {
@@ -206,7 +239,7 @@
             listEl.querySelectorAll("[data-session-id]").forEach((btn) => {
                 btn.addEventListener("click", async () => {
                     activeSessionId = btn.dataset.sessionId;
-                    window.sessionStorage.setItem(SESSION_KEY, activeSessionId);
+                    window.sessionStorage.setItem(sessionKey(), activeSessionId);
                     await loadActiveConversation(messagesEl);
                     await loadConversations(messagesEl, listEl);
                 });
@@ -214,7 +247,7 @@
         }
         if (!activeSessionId && conversations[0]?.sessionId) {
             activeSessionId = conversations[0].sessionId;
-            window.sessionStorage.setItem(SESSION_KEY, activeSessionId);
+            window.sessionStorage.setItem(sessionKey(), activeSessionId);
         }
         if (activeSessionId) {
             await loadActiveConversation(messagesEl);
@@ -226,6 +259,12 @@
         const result = await window.ApiClient.aiConversation(activeSessionId);
         if (result.success) {
             renderPersistedMessages(messagesEl, result.data.conversation);
+            return;
+        }
+        if (result.error?.code === "AI_SESSION_FORBIDDEN") {
+            activeSessionId = "";
+            window.sessionStorage.removeItem(sessionKey());
+            renderPersistedMessages(messagesEl, { messages: [] });
         }
     }
 
@@ -340,7 +379,7 @@
         });
         newBtn?.addEventListener("click", () => {
             activeSessionId = "";
-            window.sessionStorage.removeItem(SESSION_KEY);
+            window.sessionStorage.removeItem(sessionKey());
             messages.innerHTML = "";
             appendMessage(messages, "assistant", "New conversation started. Ask a question or request an action.");
             form.reset();
@@ -370,6 +409,10 @@
             loading?.remove();
 
             if (!result.success) {
+                if (result.error?.code === "AI_SESSION_FORBIDDEN") {
+                    activeSessionId = "";
+                    window.sessionStorage.removeItem(sessionKey());
+                }
                 appendMessage(messages, "assistant error", result.error?.message || "AI request failed.");
                 return;
             }
@@ -377,7 +420,7 @@
             const data = result.data || {};
             if (data.sessionId) {
                 activeSessionId = data.sessionId;
-                window.sessionStorage.setItem(SESSION_KEY, activeSessionId);
+                window.sessionStorage.setItem(sessionKey(), activeSessionId);
             }
             appendStructuredMessage(messages, data);
             await loadConversations(messages, historyEl);
@@ -389,9 +432,9 @@
         setSessionId: (sessionId) => {
             activeSessionId = sessionId || "";
             if (activeSessionId) {
-                window.sessionStorage.setItem(SESSION_KEY, activeSessionId);
+                window.sessionStorage.setItem(sessionKey(), activeSessionId);
             } else {
-                window.sessionStorage.removeItem(SESSION_KEY);
+                window.sessionStorage.removeItem(sessionKey());
             }
         },
         renderActions,

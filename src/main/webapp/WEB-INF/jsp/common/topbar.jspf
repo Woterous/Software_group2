@@ -38,7 +38,6 @@
         </div>
     </div>
     <div class="global-ai-shell">
-        <div class="global-ai-history" id="global-ai-history"></div>
         <div class="global-ai-messages" id="global-ai-messages">
             <div class="global-ai-message assistant">
                 Ask about this recruitment workspace, current role workflow, workload risks, candidate review, or what to do next.
@@ -48,7 +47,7 @@
     <form class="global-ai-form" id="global-ai-form">
         <div class="global-ai-composer">
             <textarea name="message" rows="1" aria-label="Ask AI assistant" placeholder="Ask AI assistant about this page or your next action..." required></textarea>
-            <button class="primary-btn global-ai-send" type="submit">Ask AI</button>
+            <button class="primary-btn global-ai-send" type="submit" aria-label="Send message">&#8593;</button>
         </div>
     </form>
 </aside>

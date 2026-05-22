@@ -42,7 +42,10 @@
             <form id="ta-job-filter-form" class="filter-shell">
                 <div class="filter-shell-grid">
                     <label class="filter-field">Keyword
-                        <input type="text" name="keyword" placeholder="Search by title or module" />
+                        <span class="filter-search-control">
+                            <input type="text" name="keyword" placeholder="Search by title or module" />
+                            <button class="primary-btn" type="submit">Search</button>
+                        </span>
                     </label>
                     <label class="filter-field">Module
                         <select name="module">
@@ -58,7 +61,6 @@
                     </label>
                 </div>
                 <div class="filter-shell-actions">
-                    <button class="ghost-btn" type="submit">Apply Filters</button>
                     <p class="filter-helper">Focus on deadline urgency first, then compare module and skill fit.</p>
                 </div>
             </form>
