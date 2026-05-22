@@ -774,6 +774,7 @@ window.PageModules.ta = window.PageModules.ta || {};
             event.preventDefault();
             load();
         });
+        form.status.addEventListener("change", load);
 
         await load();
     }

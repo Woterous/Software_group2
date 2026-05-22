@@ -45,6 +45,28 @@
         return document.body.dataset.page || window.location.pathname;
     }
 
+    function closeAssistantPanel({ instant = false } = {}) {
+        const panel = document.getElementById("global-ai-assistant");
+        const backdrop = document.querySelector(".global-ai-backdrop");
+        if (!panel || !backdrop) return;
+        panel.classList.remove("is-open", "is-closing");
+        backdrop.classList.remove("is-open", "is-closing");
+        panel.setAttribute("aria-hidden", "true");
+        if (instant) {
+            panel.classList.add("hidden");
+            backdrop.classList.add("hidden");
+            return;
+        }
+        panel.classList.add("is-closing");
+        backdrop.classList.add("is-closing");
+        window.setTimeout(() => {
+            panel.classList.add("hidden");
+            backdrop.classList.add("hidden");
+            panel.classList.remove("is-closing");
+            backdrop.classList.remove("is-closing");
+        }, 260);
+    }
+
     function actionButtonClass(action) {
         const tone = action?.tone || "secondary";
         if (tone === "primary") return "primary-btn ai-action-btn";
@@ -351,7 +373,10 @@
     async function executeAction(action, button) {
         const payload = action?.payload || {};
         if (action?.type === "NAVIGATE") {
-            if (payload.url) window.UIKit.navigateWithTransition(`${window.APP_CONTEXT}${payload.url}`);
+            if (payload.url) {
+                closeAssistantPanel({ instant: true });
+                window.UIKit.navigateWithTransition(`${window.APP_CONTEXT}${payload.url}`);
+            }
             return;
         }
         if (action?.type === "OPEN_CV") {
@@ -521,6 +546,7 @@
 
     window.AiAssistant = {
         getSessionId: () => activeSessionId,
+        close: closeAssistantPanel,
         setSessionId: (sessionId) => {
             activeSessionId = sessionId || "";
             if (activeSessionId) {

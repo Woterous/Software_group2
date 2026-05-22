@@ -114,6 +114,7 @@ window.PageModules.admin = window.PageModules.admin || {};
             event.preventDefault();
             load(1);
         });
+        form.role.addEventListener("change", () => load(1));
 
         await load(currentPage);
     }
@@ -154,6 +155,8 @@ window.PageModules.admin = window.PageModules.admin || {};
             event.preventDefault();
             load();
         });
+        form.status.addEventListener("change", load);
+        form.module.addEventListener("change", load);
 
         await load();
     }
@@ -190,6 +193,7 @@ window.PageModules.admin = window.PageModules.admin || {};
             event.preventDefault();
             load();
         });
+        form.riskLevel.addEventListener("change", load);
 
         if (aiBtn && aiOutput) {
             aiBtn.addEventListener("click", async () => {

@@ -3202,21 +3202,38 @@ a:hover {
 
 .filter-shell {
     display: grid;
-    gap: 16px;
+    gap: 10px;
+    margin-bottom: 14px;
 }
 
 .filter-shell-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(220px, 0.6fr));
-    gap: 14px;
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 .filter-shell--compact .filter-shell-grid {
-    grid-template-columns: 260px minmax(0, 1fr);
+    max-width: 760px;
 }
 
 .filter-field {
     gap: 8px;
+    flex: 0 0 210px;
+    min-width: 190px;
+    max-width: 240px;
+}
+
+.filter-field--search {
+    position: relative;
+    flex: 1 1 360px;
+    min-width: 280px;
+    max-width: 540px;
+}
+
+.filter-field--search input {
+    width: 100%;
+    padding-right: 48px;
 }
 
 .filter-search-control {
@@ -3234,6 +3251,57 @@ a:hover {
     min-width: 96px;
     height: var(--control-height);
     padding: 0 18px;
+}
+
+.filter-search-btn {
+    position: absolute;
+    right: 7px;
+    bottom: 6px;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(197, 212, 205, 0.96);
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #174e46;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(229, 241, 235, 0.92));
+    box-shadow:
+        0 8px 18px rgba(23, 78, 70, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition:
+        transform var(--t-fast) var(--ease-smooth),
+        border-color var(--t-fast) var(--ease-smooth),
+        box-shadow var(--t-fast) var(--ease-smooth);
+}
+
+.filter-search-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(31, 106, 94, 0.36);
+    box-shadow:
+        0 10px 20px rgba(23, 78, 70, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.filter-search-btn:focus-visible {
+    outline: none;
+    box-shadow:
+        var(--focus-ring),
+        0 10px 20px rgba(23, 78, 70, 0.16);
+}
+
+.filter-search-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .filter-shell-actions {

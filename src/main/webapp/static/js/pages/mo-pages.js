@@ -179,6 +179,7 @@ window.PageModules.mo = window.PageModules.mo || {};
             event.preventDefault();
             load();
         });
+        filterForm.status.addEventListener("change", load);
 
         jobForm.addEventListener("submit", async (event) => {
             event.preventDefault();
@@ -250,6 +251,8 @@ window.PageModules.mo = window.PageModules.mo || {};
             event.preventDefault();
             load();
         });
+        form.jobId.addEventListener("change", load);
+        form.status.addEventListener("change", load);
 
         await load();
     }

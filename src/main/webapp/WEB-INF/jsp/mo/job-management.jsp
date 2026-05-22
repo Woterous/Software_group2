@@ -12,15 +12,26 @@
                 <h2>My Job Listings</h2>
                 <button type="button" class="primary-btn" id="mo-open-create-job">Post New Job</button>
             </div>
-            <form id="mo-job-filter-form" class="toolbar-row">
-                <input type="text" name="keyword" placeholder="Search jobs" />
-                <select name="status">
-                    <option value="">All Status</option>
-                    <option value="open">Open</option>
-                    <option value="closing">Closing Soon</option>
-                    <option value="closed">Closed</option>
-                </select>
-                <button class="ghost-btn" type="submit">Filter</button>
+            <form id="mo-job-filter-form" class="filter-shell">
+                <div class="filter-shell-grid">
+                    <label class="filter-field filter-field--search">Keyword
+                        <input type="text" name="keyword" placeholder="Search jobs" />
+                        <button class="filter-search-btn" type="submit" aria-label="Search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m21 21-4.3-4.3"></path>
+                                <circle cx="11" cy="11" r="7"></circle>
+                            </svg>
+                        </button>
+                    </label>
+                    <label class="filter-field">Status
+                        <select name="status">
+                            <option value="">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="closing">Closing Soon</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </label>
+                </div>
             </form>
             <div class="table-wrap">
                 <table class="data-table">
