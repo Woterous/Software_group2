@@ -3,6 +3,7 @@ package com.group02.tars.service;
 import com.group02.tars.service.impl.ApplicationServiceImpl;
 import com.group02.tars.service.impl.AdminServiceImpl;
 import com.group02.tars.service.impl.AiAssistantServiceImpl;
+import com.group02.tars.service.impl.AiConversationServiceImpl;
 import com.group02.tars.service.impl.CvAccessServiceImpl;
 import com.group02.tars.service.impl.JobServiceImpl;
 import com.group02.tars.service.impl.MoServiceImpl;
@@ -33,6 +34,7 @@ public class ServiceRegistry {
     private final AdminService adminService;
     private final CvAccessService cvAccessService;
     private final AiAssistantService aiAssistantService;
+    private final AiConversationService aiConversationService;
 
     /**
      * Creates the storage and service instances for one servlet context.
@@ -49,6 +51,7 @@ public class ServiceRegistry {
         this.adminService = new AdminServiceImpl(storage);
         this.cvAccessService = new CvAccessServiceImpl(storage);
         this.aiAssistantService = new AiAssistantServiceImpl(storage, DataDirectoryResolver.resolveUploadsDir(context));
+        this.aiConversationService = new AiConversationServiceImpl(DataDirectoryResolver.resolveDataDir(context));
     }
 
     /**
@@ -131,6 +134,15 @@ public class ServiceRegistry {
      */
     public AiAssistantService aiAssistantService() {
         return aiAssistantService;
+    }
+
+    /**
+     * Returns the AI conversation persistence service.
+     *
+     * @return AI conversation service instance
+     */
+    public AiConversationService aiConversationService() {
+        return aiConversationService;
     }
 
     /**

@@ -29,6 +29,15 @@
             </div>
             <form id="ta-app-filter-form" class="filter-shell filter-shell--compact">
                 <div class="filter-shell-grid">
+                    <label class="filter-field filter-field--search">Keyword
+                        <input type="text" name="keyword" placeholder="Search by module or role" />
+                        <button class="filter-search-btn" type="submit" aria-label="Search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m21 21-4.3-4.3"></path>
+                                <circle cx="11" cy="11" r="7"></circle>
+                            </svg>
+                        </button>
+                    </label>
                     <label class="filter-field">Status
                         <select name="status">
                             <option value="">All Status</option>
@@ -37,13 +46,6 @@
                             <option value="rejected">Rejected</option>
                         </select>
                     </label>
-                    <label class="filter-field">Keyword
-                        <input type="text" name="keyword" placeholder="Search by module or role" />
-                    </label>
-                </div>
-                <div class="filter-shell-actions">
-                    <button class="ghost-btn" type="submit">Filter Results</button>
-                    <p class="filter-helper">Combine status and keyword filters to review only the applications that need action.</p>
                 </div>
             </form>
             <div class="table-wrap table-wrap--applications">

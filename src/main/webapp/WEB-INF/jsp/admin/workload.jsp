@@ -25,14 +25,17 @@
                 <span class="muted">Sort and risk-highlight by selected assignments</span>
             </div>
 
-            <form id="admin-workload-filter-form" class="toolbar-row">
-                <select name="riskLevel">
-                    <option value="">All Levels</option>
-                    <option value="normal">Normal</option>
-                    <option value="warning">Warning</option>
-                    <option value="overload">Overload</option>
-                </select>
-                <button class="ghost-btn" type="submit">Filter</button>
+            <form id="admin-workload-filter-form" class="filter-shell">
+                <div class="filter-shell-grid">
+                    <label class="filter-field">Risk Level
+                        <select name="riskLevel">
+                            <option value="">All Levels</option>
+                            <option value="normal">Normal</option>
+                            <option value="warning">Warning</option>
+                            <option value="overload">Overload</option>
+                        </select>
+                    </label>
+                </div>
             </form>
 
             <div class="table-wrap">

@@ -5,7 +5,12 @@
  * 初始化入口：UIKit.bindGlobalActions()，由 bootstrap.js 在所有页面启动时调用。
  */
 (function () {
+    const SESSION_KEY = "tars.session.user";
+    const AI_SESSION_PREFIX = "tars.ai.sessionId.";
     let selectRuntimeReady = false;
+    const PAGE_CACHE_LIMIT = 8;
+    const pageCache = new Map();
+    let navigationInFlight = null;
 
     function byId(id) {
         return document.getElementById(id);
@@ -289,10 +294,11 @@
     function renderAiStructuredView({ providerMode, headline, priority, sections }) {
         const priorityData = priority || {};
         const sectionRows = Array.isArray(sections) ? sections : [];
+        const providerLabel = providerMode ? "AI assistant" : "";
         return `
             <article class="ai-model-summary">
                 <div class="ai-model-summary-head">
-                    ${providerMode ? `<span>${escapeHtml(providerMode)}</span>` : ""}
+                    ${providerLabel ? `<span>${escapeHtml(providerLabel)}</span>` : ""}
                     <strong>${escapeHtml(headline || "AI analysis is ready.")}</strong>
                 </div>
                 ${priorityData.title || priorityData.reason ? `
@@ -335,32 +341,108 @@
         return `${window.APP_CONTEXT}/pages/ta/dashboard`;
     }
 
-    function openModal({ title, message, onConfirm }) {
+    function readStoredSession() {
+        try {
+            return JSON.parse(window.sessionStorage.getItem(SESSION_KEY) || "null");
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function clearAiSessions() {
+        const keys = [];
+        for (let index = 0; index < window.sessionStorage.length; index += 1) {
+            const key = window.sessionStorage.key(index);
+            if (key) keys.push(key);
+        }
+        keys.forEach((key) => {
+            if (key === "tars.ai.sessionId" || key.startsWith(AI_SESSION_PREFIX)) {
+                window.sessionStorage.removeItem(key);
+            }
+        });
+    }
+
+    function storeSession(user) {
+        if (!user) return;
+        window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    }
+
+    function clearStoredSession() {
+        window.sessionStorage.removeItem(SESSION_KEY);
+        clearAiSessions();
+    }
+
+    function handleSessionExpired(message = "Session expired. Please log in again.") {
+        clearStoredSession();
+        if (message) toast(message, "warn");
+        const loginUrl = `${window.APP_CONTEXT}/pages/login`;
+        if (!window.location.pathname.endsWith("/pages/login")) {
+            navigateWithTransition(loginUrl);
+        }
+    }
+
+    function openModal({ title, message, confirmText = "Confirm", cancelText = "Cancel", tone = "primary", onConfirm } = {}) {
         const root = byId("modal-root");
-        if (!root) return;
-        byId("modal-title").textContent = title || "Confirm";
-        byId("modal-message").textContent = message || "Please confirm this action.";
-        root.classList.remove("hidden");
-
-        const close = () => {
-            root.classList.add("hidden");
-            confirmBtn.removeEventListener("click", confirmHandler);
-            cancelBtn.removeEventListener("click", close);
-            backdrop.removeEventListener("click", close);
-        };
-
-        const confirmHandler = () => {
-            close();
+        if (!root) {
             if (typeof onConfirm === "function") onConfirm();
-        };
-
+            return Promise.resolve(true);
+        }
+        const titleEl = byId("modal-title");
+        const messageEl = byId("modal-message");
         const confirmBtn = root.querySelector('[data-action="modal-confirm"]');
         const cancelBtn = root.querySelector('[data-action="modal-cancel"]');
         const backdrop = root.querySelector('[data-action="modal-close"]');
+        if (!titleEl || !messageEl || !confirmBtn || !cancelBtn || !backdrop) {
+            if (typeof onConfirm === "function") onConfirm();
+            return Promise.resolve(true);
+        }
 
-        confirmBtn.addEventListener("click", confirmHandler);
-        cancelBtn.addEventListener("click", close);
-        backdrop.addEventListener("click", close);
+        const previousConfirmText = confirmBtn.textContent;
+        const previousCancelText = cancelBtn.textContent;
+        const previousConfirmClass = confirmBtn.className;
+        titleEl.textContent = title || "Confirm";
+        messageEl.textContent = message || "Please confirm this action.";
+        confirmBtn.textContent = confirmText || "Confirm";
+        cancelBtn.textContent = cancelText || "Cancel";
+        confirmBtn.className = tone === "danger" ? "danger-btn" : "primary-btn";
+        root.classList.remove("hidden");
+
+        return new Promise((resolve) => {
+            let settled = false;
+
+            const close = (confirmed) => {
+                if (settled) return;
+                settled = true;
+                root.classList.add("hidden");
+                confirmBtn.textContent = previousConfirmText;
+                cancelBtn.textContent = previousCancelText;
+                confirmBtn.className = previousConfirmClass;
+                confirmBtn.removeEventListener("click", confirmHandler);
+                cancelBtn.removeEventListener("click", cancelHandler);
+                backdrop.removeEventListener("click", cancelHandler);
+                document.removeEventListener("keydown", keyHandler);
+                resolve(confirmed);
+            };
+
+            const confirmHandler = () => {
+                close(true);
+                if (typeof onConfirm === "function") onConfirm();
+            };
+
+            const cancelHandler = () => close(false);
+
+            const keyHandler = (event) => {
+                if (event.key === "Escape") {
+                    close(false);
+                }
+            };
+
+            confirmBtn.addEventListener("click", confirmHandler);
+            cancelBtn.addEventListener("click", cancelHandler);
+            backdrop.addEventListener("click", cancelHandler);
+            document.addEventListener("keydown", keyHandler);
+            confirmBtn.focus();
+        });
     }
 
     function initSidebarSegmentedNav() {
@@ -369,7 +451,7 @@
             navRoot.dataset.segmentedReady = "1";
 
             const indicator = navRoot.querySelector(".nav-indicator");
-            const items = Array.from(navRoot.querySelectorAll(".nav-item"));
+            const items = Array.from(navRoot.querySelectorAll(".nav-item:not(.nav-item--disabled)"));
             if (!indicator || !items.length) return;
 
             const moveTo = (item) => {
@@ -435,9 +517,221 @@
         });
     }
 
+    function isTransitionableLink(link, event) {
+        if (!link || event.defaultPrevented) return false;
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+        if (link.target && link.target !== "_self") return false;
+        if (link.hasAttribute("download")) return false;
+        if (link.dataset.transition === "none") return false;
+
+        const href = link.getAttribute("href") || "";
+        if (!href || href.startsWith("#") || href.startsWith("javascript:") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+            return false;
+        }
+
+        const nextUrl = new URL(link.href, window.location.href);
+        if (nextUrl.origin !== window.location.origin) return false;
+        if (nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search && nextUrl.hash) return false;
+
+        const context = window.APP_CONTEXT || "";
+        return !context || nextUrl.pathname.startsWith(context + "/") || nextUrl.pathname === context;
+    }
+
+    function pageCacheKey(url) {
+        const parsed = new URL(url, window.location.href);
+        parsed.hash = "";
+        return parsed.href;
+    }
+
+    function rememberPage(key, html) {
+        if (pageCache.has(key)) pageCache.delete(key);
+        pageCache.set(key, html);
+        while (pageCache.size > PAGE_CACHE_LIMIT) {
+            pageCache.delete(pageCache.keys().next().value);
+        }
+    }
+
+    function isWorkspacePage(url) {
+        const nextUrl = new URL(url, window.location.href);
+        const context = window.APP_CONTEXT || "";
+        const role = document.body.dataset.role || "";
+        if (!role || role === "public") return false;
+        if (nextUrl.origin !== window.location.origin) return false;
+        return nextUrl.pathname.startsWith(`${context}/pages/${role}/`);
+    }
+
+    function parsePage(html) {
+        return new DOMParser().parseFromString(html, "text/html");
+    }
+
+    async function fetchPage(url) {
+        const key = pageCacheKey(url);
+        if (pageCache.has(key)) {
+            return parsePage(pageCache.get(key));
+        }
+
+        const response = await fetch(key, {
+            credentials: "same-origin",
+            headers: {
+                "Accept": "text/html",
+                "X-Requested-With": "fetch"
+            }
+        });
+        if (!response.ok) throw new Error(`Page request failed: ${response.status}`);
+
+        const html = await response.text();
+        rememberPage(key, html);
+        return parsePage(html);
+    }
+
+    function getPageRoot(source = document) {
+        return source.querySelector(".workspace, .public-shell");
+    }
+
+    function canSoftSwap(nextDoc, targetUrl) {
+        const nextBody = nextDoc.body;
+        if (!nextBody || !getPageRoot(nextDoc) || !getPageRoot(document)) return false;
+        if (nextBody.dataset.role !== document.body.dataset.role) return false;
+        return isWorkspacePage(targetUrl);
+    }
+
+    function applySoftPage(nextDoc, targetUrl, replaceHistory = false) {
+        if (!canSoftSwap(nextDoc, targetUrl)) return false;
+
+        const nextRoot = getPageRoot(nextDoc);
+        const currentRoot = getPageRoot(document);
+        nextRoot.classList.add("is-soft-navigated");
+        document.title = nextDoc.title || document.title;
+        document.body.dataset.role = nextDoc.body.dataset.role || document.body.dataset.role || "";
+        document.body.dataset.page = nextDoc.body.dataset.page || document.body.dataset.page || "";
+        currentRoot.replaceWith(nextRoot);
+        window.scrollTo(0, 0);
+
+        const historyAction = replaceHistory ? "replaceState" : "pushState";
+        window.history[historyAction]({ softPage: true }, "", targetUrl);
+        window.PageBoot?.boot?.();
+        document.dispatchEvent(new CustomEvent("tars:soft-navigation", {
+            detail: { url: targetUrl, page: document.body.dataset.page }
+        }));
+        return true;
+    }
+
+    function hardNavigate(url) {
+        if (document.body.classList.contains("is-page-exiting")) return;
+        document.body.classList.add("is-page-exiting");
+        window.setTimeout(() => {
+            window.location.href = url;
+        }, 110);
+    }
+
+    async function runSoftNavigation(url, replaceHistory = false) {
+        const targetUrl = new URL(url, window.location.href).href;
+        const key = pageCacheKey(targetUrl);
+        const cached = pageCache.has(key);
+        document.body.classList.toggle("is-page-loading", !cached);
+
+        try {
+            const nextDoc = await fetchPage(targetUrl);
+            document.body.classList.remove("is-page-loading");
+
+            if (!canSoftSwap(nextDoc, targetUrl)) {
+                hardNavigate(targetUrl);
+                return;
+            }
+
+            if (document.startViewTransition) {
+                document.body.classList.add("is-soft-swapping");
+                const transition = document.startViewTransition(() => {
+                    applySoftPage(nextDoc, targetUrl, replaceHistory);
+                });
+                await transition.finished.catch(() => {});
+                document.body.classList.remove("is-soft-swapping");
+            } else {
+                document.body.classList.add("is-soft-exiting");
+                await new Promise((resolve) => window.setTimeout(resolve, 90));
+                applySoftPage(nextDoc, targetUrl, replaceHistory);
+                document.body.classList.remove("is-soft-exiting");
+                document.body.classList.add("is-soft-entering");
+                window.requestAnimationFrame(() => {
+                    window.setTimeout(() => document.body.classList.remove("is-soft-entering"), 240);
+                });
+            }
+        } catch (_) {
+            hardNavigate(targetUrl);
+        } finally {
+            document.body.classList.remove("is-page-loading");
+            document.body.classList.remove("is-soft-swapping");
+            navigationInFlight = null;
+        }
+    }
+
+    function prefetchPage(url) {
+        if (!isWorkspacePage(url)) return;
+        const key = pageCacheKey(url);
+        if (pageCache.has(key)) return;
+        const schedule = window.requestIdleCallback || ((task) => window.setTimeout(task, 60));
+        schedule(() => {
+            fetchPage(url).catch(() => {});
+        });
+    }
+
+    function navigateWithTransition(url) {
+        if (!url) return;
+        const targetUrl = new URL(url, window.location.href);
+        if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
+            if (targetUrl.hash) window.location.hash = targetUrl.hash;
+            return;
+        }
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !isWorkspacePage(targetUrl.href)) {
+            hardNavigate(targetUrl.href);
+            return;
+        }
+        if (navigationInFlight) return;
+        navigationInFlight = runSoftNavigation(targetUrl.href);
+    }
+
+    function initPageTransitions() {
+        if (document.documentElement.dataset.pageTransitionsReady === "1") return;
+        document.documentElement.dataset.pageTransitionsReady = "1";
+
+        window.requestAnimationFrame(() => {
+            document.body.classList.add("is-page-ready");
+        });
+
+        document.addEventListener("click", (event) => {
+            const link = event.target.closest("a[href]");
+            if (!isTransitionableLink(link, event)) return;
+            event.preventDefault();
+            navigateWithTransition(link.href);
+        });
+
+        ["pointerenter", "focusin", "touchstart"].forEach((eventName) => {
+            document.addEventListener(eventName, (event) => {
+                const link = event.target.closest?.("a[href]");
+                if (!link || link.dataset.transition === "none") return;
+                prefetchPage(link.href);
+            }, { passive: true, capture: true });
+        });
+
+        window.addEventListener("pageshow", () => {
+            document.body.classList.remove("is-page-exiting");
+            document.body.classList.remove("is-page-loading");
+            document.body.classList.add("is-page-ready");
+        });
+
+        window.addEventListener("popstate", () => {
+            if (isWorkspacePage(window.location.href)) {
+                navigationInFlight = runSoftNavigation(window.location.href, true);
+            } else {
+                window.location.reload();
+            }
+        });
+    }
+
     function bindGlobalActions() {
         initCustomSelects(document);
         initSidebarSegmentedNav();
+        initPageTransitions();
 
         document.querySelectorAll('[data-action="theme-toggle"]').forEach((btn) => {
             btn.addEventListener("click", () => {
@@ -454,24 +748,40 @@
                     btn.disabled = false;
                     return;
                 }
-                window.sessionStorage.removeItem("tars.session.user");
-                window.location.href = `${window.APP_CONTEXT}/pages/login`;
+                clearStoredSession();
+                navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             });
         });
     }
 
     function ensureSessionOrRedirect(allowedRoles) {
-        let session = null;
-        try {
-            session = JSON.parse(window.sessionStorage.getItem("tars.session.user") || "null");
-        } catch (_) {
-            session = null;
-        }
+        const session = readStoredSession();
         if (!session || (allowedRoles && !allowedRoles.includes(session.role))) {
-            window.location.href = `${window.APP_CONTEXT}/pages/login`;
+            navigateWithTransition(`${window.APP_CONTEXT}/pages/login`);
             return null;
         }
         return session;
+    }
+
+    async function ensureServerSessionOrRedirect(allowedRoles) {
+        const session = ensureSessionOrRedirect(allowedRoles);
+        if (!session) return null;
+        if (!window.ApiClient?.authMe) return session;
+
+        const result = await window.ApiClient.authMe();
+        if (!result.success) {
+            handleSessionExpired();
+            return null;
+        }
+
+        const user = result.data?.user;
+        if (!user || (allowedRoles && !allowedRoles.includes(user.role))) {
+            handleSessionExpired("Please sign in with an authorized account.");
+            return null;
+        }
+
+        storeSession(user);
+        return user;
     }
 
     window.UIKit = {
@@ -486,7 +796,13 @@
         roleHome,
         openModal,
         bindGlobalActions,
+        navigateWithTransition,
         ensureSessionOrRedirect,
+        ensureServerSessionOrRedirect,
+        handleSessionExpired,
+        readStoredSession,
+        storeSession,
+        clearStoredSession,
         escapeHtml,
         refreshSelectComponents,
         renderAiStructuredView

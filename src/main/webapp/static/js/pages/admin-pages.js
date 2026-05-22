@@ -114,6 +114,7 @@ window.PageModules.admin = window.PageModules.admin || {};
             event.preventDefault();
             load(1);
         });
+        form.role.addEventListener("change", () => load(1));
 
         await load(currentPage);
     }
@@ -154,6 +155,8 @@ window.PageModules.admin = window.PageModules.admin || {};
             event.preventDefault();
             load();
         });
+        form.status.addEventListener("change", load);
+        form.module.addEventListener("change", load);
 
         await load();
     }
@@ -190,12 +193,17 @@ window.PageModules.admin = window.PageModules.admin || {};
             event.preventDefault();
             load();
         });
+        form.riskLevel.addEventListener("change", load);
 
         if (aiBtn && aiOutput) {
             aiBtn.addEventListener("click", async () => {
                 aiBtn.disabled = true;
                 aiOutput.innerHTML = '<div class="ai-loading-card">Analyzing workload and role-level risks...</div>';
-                const result = await window.ApiClient.aiAdminRiskAnalysis({ riskLevel: form.riskLevel.value });
+                const result = await window.ApiClient.aiAdminRiskAnalysis({
+                    riskLevel: form.riskLevel.value,
+                    sessionId: window.AiAssistant?.getSessionId?.() || "",
+                    page: "admin/workload"
+                });
                 aiBtn.disabled = false;
                 if (!result.success) {
                     window.UIKit.toast(result.error.message, "error");
@@ -203,8 +211,13 @@ window.PageModules.admin = window.PageModules.admin || {};
                     return;
                 }
                 const data = result.data;
+                if (data?.sessionId) {
+                    window.AiAssistant?.setSessionId?.(data.sessionId);
+                }
+                aiOutput.dataset.actions = JSON.stringify(data.suggestedActions || []);
                 aiOutput.innerHTML = `
                     ${renderStructuredAi(data, data.summary)}
+                    ${window.AiAssistant?.renderActions ? window.AiAssistant.renderActions(data.suggestedActions || []) : ""}
                     <div class="ai-grid-two">
                         <article class="ai-result-card">
                             <h4>People risk</h4>
@@ -227,6 +240,7 @@ window.PageModules.admin = window.PageModules.admin || {};
                         </article>
                     </div>
                 `;
+                window.AiAssistant?.bindActionButtons(aiOutput);
             });
         }
 
